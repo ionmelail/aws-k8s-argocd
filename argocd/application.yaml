@@ -1,0 +1,122 @@
+############################################
+# Demo App Namespace Configuration
+############################################
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-app
+############################################
+# ArgoCD Application for Deploying Demo App
+############################################
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+  namespace: argocd
+spec:
+  project: demo-project
+  source:
+    repoURL: "https://github.com/imelnic555/demo.git"
+    targetRevision: "main"
+    path: "k8s"  # Ensure Kubernetes manifests exist here
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "demo-app"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+
+############################################
+# ArgoCD Project Configuration
+############################################
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: demo-project
+  namespace: argocd
+spec:
+  description: Demo Project for ArgoCD
+  sourceRepos:
+    - "https://github.com/imelnic555/demo.git"
+  destinations:
+    - namespace: "demo-app"
+      server: "https://kubernetes.default.svc"
+  clusterResourceWhitelist:
+    - group: ""
+      kind: "Namespace"
+    - group: "argoproj.io"
+      kind: "ApplicationSet" # ✅ Explicitly allow ApplicationSets
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "Deployment"
+    - group: ""
+      kind: "Service"
+    - group: ""
+      kind: "Ingress"
+
+############################################
+# ArgoCD Application for Deploying Demo App
+############################################
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+  namespace: argocd
+spec:
+  project: demo-project  # ✅ Ensuring project reference
+  source:
+    repoURL: "https://github.com/imelnic555/demo.git"
+    targetRevision: "main"
+    path: "k8s"  # Ensure Kubernetes manifests exist here
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "demo-app"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
+############################################
+# ArgoCD Server Service Configuration
+############################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-server
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+    - name: https
+      port: 443
+      targetPort: 8080
+  type: LoadBalancer
+
+############################################
+# Service Configuration for Demo App
+############################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-service
+  namespace: demo-app
+spec:
+  selector:
+    app: demo-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer
