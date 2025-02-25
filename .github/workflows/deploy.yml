@@ -206,13 +206,19 @@ jobs:
             echo "✅ IAM Policy already exists: $POLICY_ARN"
           fi
 
-# 🔹 Wait for IAM Policy to Propagate Before Attaching
-      - name: Wait for IAM Policy to Propagate Before Attaching
+      # 🔹 Ensure IAM Policy is Fully Available Before Attaching
+      - name: Ensure IAM Policy Exists Before Attaching
         run: |
           POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController"
-          MAX_RETRIES=10
-          WAIT_TIME=30
+          MAX_RETRIES=15  # Allow up to ~8 minutes for IAM policy propagation
+          WAIT_TIME=30  # Start with 30 seconds
+      
           echo "✅ Ensuring IAM policy exists before attaching..."
+      
+          # Explicitly wait for AWS to confirm policy exists
+          aws iam wait policy-exists --policy-arn "$POLICY_ARN" || echo "⏳ Initial wait failed. Retrying manually."
+      
+          # Retry with exponential backoff
           for i in $(seq 1 $MAX_RETRIES); do
             if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
               echo "✅ IAM Policy is now available!"
@@ -220,10 +226,12 @@ jobs:
             fi
             echo "⏳ IAM Policy not available yet. Retrying in $WAIT_TIME seconds..."
             sleep $WAIT_TIME
+            WAIT_TIME=$((WAIT_TIME * 2))  # Exponential backoff (30s, 60s, 120s, etc.)
           done
+      
           echo "❌ ERROR: IAM Policy did not become available in time!"
           exit 1
-          
+
 
       
       # ✅ Step X: Ensure IAM Policy is Fully Available Before Attaching
