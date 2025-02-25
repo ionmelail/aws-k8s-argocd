@@ -357,12 +357,15 @@ jobs:
             sleep 10
           done
           echo "❌ ERROR: ArgoCD server LoadBalancer IP not found. Check Kubernetes events."
+
+
+          
           kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
           exit 1
 
-      - name: Check DNS Resolution
-        run: |
-          nslookup $ARGOCD_SERVER || (echo "❌ ERROR: DNS resolution failed." && exit 1)
+      # - name: Check DNS Resolution
+      #   run: |
+      #     nslookup $ARGOCD_SERVER || (echo "❌ ERROR: DNS resolution failed." && exit 1)
 
       - name: Wait for ArgoCD Readiness
         run: |
@@ -380,54 +383,56 @@ jobs:
           echo "⚠️ Using port-forwarding as a fallback..."
           kubectl port-forward svc/argocd-server -n argocd 8080:443 & sleep 5
           argocd login localhost:8080 --username admin --password "password" --insecure
-
+          # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
+          echo "⚠️ Using port-forwarding as a fallback..."
+          # echo ARGOCD_ADMIN_PASSWORD
 
           
-      # ✅ Step 14: Get ArgoCD Server Address (with Wait Loop)
-      - name: Get ArgoCD Server Address
-        run: |
-          echo "Waiting for ArgoCD server address..."
-          for i in {1..30}; do
-            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-            if [[ -n "$ARGOCD_SERVER" ]]; then
-              echo "✅ ArgoCD Server Address: $ARGOCD_SERVER"
-              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-              exit 0
-            fi
-            echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ ERROR: ArgoCD server address not found after waiting."
-          exit 1
+      # # ✅ de aicic in jos Step 14: Get ArgoCD Server Address (with Wait Loop)
+      # - name: Get ArgoCD Server Address
+      #   run: |
+      #     echo "Waiting for ArgoCD server address..."
+      #     for i in {1..30}; do
+      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+      #       if [[ -n "$ARGOCD_SERVER" ]]; then
+      #         echo "✅ ArgoCD Server Address: $ARGOCD_SERVER"
+      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+      #         exit 0
+      #       fi
+      #       echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
+      #       sleep 10
+      #     done
+      #     echo "❌ ERROR: ArgoCD server address not found after waiting."
+      #     exit 1
 
 
-      # 1️⃣8️⃣ Retrieve ArgoCD Admin Password
-      - name: Get ArgoCD Admin Password
-        run: |
-          echo "update ArgoCD admin password..."
-          kubectl -n argocd patch secret argocd-secret \
-          -p '{"stringData": {
-            "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
-            "admin.passwordMtime": "'$(date +%FT%T%Z)'"
-          }}'
-          echo "Retrieving ArgoCD admin password..."
+      # # 1️⃣8️⃣ Retrieve ArgoCD Admin Password
+      # - name: Get ArgoCD Admin Password
+      #   run: |
+      #     echo "update ArgoCD admin password..."
+      #     kubectl -n argocd patch secret argocd-secret \
+      #     -p '{"stringData": {
+      #       "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
+      #       "admin.passwordMtime": "'$(date +%FT%T%Z)'"
+      #     }}'
+      #     echo "Retrieving ArgoCD admin password..."
                                  
 
-          # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
-          ARGOCD_ADMIN_PASSWORD='password'
-          if [[ -z "$ARGOCD_ADMIN_PASSWORD" ]]; then
-            echo "❌ ERROR: Unable to retrieve ArgoCD admin password."
-            exit 1
-          fi
-          echo "::add-mask::$ARGOCD_ADMIN_PASSWORD"
-          echo "ARGOCD_ADMIN_PASSWORD=$ARGOCD_ADMIN_PASSWORD" >> $GITHUB_ENV
+      #     # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
+      #     ARGOCD_ADMIN_PASSWORD='password'
+      #     if [[ -z "$ARGOCD_ADMIN_PASSWORD" ]]; then
+      #       echo "❌ ERROR: Unable to retrieve ArgoCD admin password."
+      #       exit 1
+      #     fi
+      #     echo "::add-mask::$ARGOCD_ADMIN_PASSWORD"
+      #     echo "ARGOCD_ADMIN_PASSWORD=$ARGOCD_ADMIN_PASSWORD" >> $GITHUB_ENV
 
-      # 1️⃣9️⃣ Log in to ArgoCD
-      - name: Login to ArgoCD
-        run: |
-          echo "Logging into ArgoCD..."
-          argocd login "$ARGOCD_SERVER" --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
-          echo "✅ Successfully logged into ArgoCD."
+      # # 1️⃣9️⃣ Log in to ArgoCD
+      # - name: Login to ArgoCD
+      #   run: |
+      #     echo "Logging into ArgoCD..."
+      #     argocd login "$ARGOCD_SERVER" --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
+      #     echo "✅ Successfully logged into ArgoCD."
 
    # 1️⃣3️⃣ Perform Dry-Run Deployment of ArgoCD Application
       - name: Check Dry-Run Applications
@@ -458,26 +463,26 @@ jobs:
           kubectl get pods -n demo-app
           kubectl get svc -n demo-app
 
-      # 2️⃣3️⃣ Debugging Step: Collect Logs if ArgoCD Fails
-      - name: Debugging - Get Failing Pod Logs
-        if: failure()
-        run: |
-          echo "Fetching logs from ArgoCD pods..."
-          kubectl get pods -n argocd
-          kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server || true
-          kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller || true
+      # # 2️⃣3️⃣ Debugging Step: Collect Logs if ArgoCD Fails
+      # - name: Debugging - Get Failing Pod Logs
+      #   if: failure()
+      #   run: |
+      #     echo "Fetching logs from ArgoCD pods..."
+      #     kubectl get pods -n argocd
+      #     kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server || true
+      #     kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller || true
 
-      # 2️⃣4️⃣ Debugging Step: Describe Failing ArgoCD Pods
-      - name: Debugging - Describe Failing Pods
-        if: failure()
-        run: |
-          echo "Describing problematic pods..."
-          kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-server || true
-          kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-application-controller || true
+      # # 2️⃣4️⃣ Debugging Step: Describe Failing ArgoCD Pods
+      # - name: Debugging - Describe Failing Pods
+      #   if: failure()
+      #   run: |
+      #     echo "Describing problematic pods..."
+      #     kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-server || true
+      #     kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-application-controller || true
 
-      # 2️⃣5️⃣ Debugging Step: Get Recent Kubernetes Events
-      - name: Debugging - Get Kubernetes Events
-        if: failure()
-        run: |
-          echo "Checking Kubernetes events..."
-          kubectl get events -n argocd --sort-by=.metadata.creationTimestamp || true
+      # # 2️⃣5️⃣ Debugging Step: Get Recent Kubernetes Events
+      # - name: Debugging - Get Kubernetes Events
+      #   if: failure()
+      #   run: |
+      #     echo "Checking Kubernetes events..."
+      #     kubectl get events -n argocd --sort-by=.metadata.creationTimestamp || true
