@@ -526,7 +526,7 @@ jobs:
       - name: Log into ArgoCD
         run: |
           echo "🔑 Attempting to log into ArgoCD..."
-          argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
+          argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
           echo "✅ Successfully logged into ArgoCD"
 
       - name: Ensure Admin Has Sync Permissions
