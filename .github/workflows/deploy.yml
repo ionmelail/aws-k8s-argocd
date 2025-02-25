@@ -452,16 +452,28 @@ jobs:
           argocd app sync demo-app
           echo "✅ ArgoCD application sync initiated."
 
-      # 2️⃣1️⃣ Check All Namespaces
-      - name: Check namespaces
+      - name: Port Forward as Fallback
+        if: failure()
         run: |
-          kubectl get namespaces
+          echo "⚠️ Using port-forwarding as a fallback..."
+          kubectl port-forward svc/argocd-server -n argocd 8080:443 & sleep 5
+          argocd login localhost:8080 --username admin --password "password" --insecure
+          echo "✅ Successfully logged in using port-forwarding"
 
-      # 2️⃣2️⃣ Verify Deployment of Demo-App
-      - name: Verify Deployment
-        run: |
-          kubectl get pods -n demo-app
-          kubectl get svc -n demo-app
+          echo "🚀 Syncing demo-app with ArgoCD via port-forward..."
+          argocd app sync demo-app --server=localhost:8080
+          echo "✅ Sync initiated successfully (fallback mode)"
+
+      # # 2️⃣1️⃣ Check All Namespaces
+      # - name: Check namespaces
+      #   run: |
+      #     kubectl get namespaces
+
+      # # 2️⃣2️⃣ Verify Deployment of Demo-App
+      # - name: Verify Deployment
+      #   run: |
+      #     kubectl get pods -n demo-app
+      #     kubectl get svc -n demo-app
 
       # # 2️⃣3️⃣ Debugging Step: Collect Logs if ArgoCD Fails
       # - name: Debugging - Get Failing Pod Logs
