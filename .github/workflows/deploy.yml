@@ -434,14 +434,29 @@ jobs:
       #     argocd login "$ARGOCD_SERVER" --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
       #     echo "✅ Successfully logged into ArgoCD."
 
-   # 1️⃣3️⃣ Perform Dry-Run Deployment of ArgoCD Application
-      - name: Check Dry-Run Applications
+      - name: Ensure AWS Load Balancer Webhook is Running
         run: |
-          kubectl apply -f argocd/application.yaml --dry-run=client
+          echo "🔄 Checking AWS Load Balancer Webhook status..."
+          for i in {1..5}; do
+            if kubectl get svc aws-load-balancer-webhook-service -n kube-system > /dev/null 2>&1; then
+              echo "✅ AWS Load Balancer Webhook is available!"
+              exit 0
+            fi
+            echo "⏳ Webhook service not available yet. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: AWS Load Balancer Webhook is unavailable!"
+          exit 1
 
-      # 1️⃣4️⃣ Deploy Application with ArgoCD
-      - name: Deploy Application with ArgoCD
+      - name: Restart AWS Load Balancer Controller (if needed)
         run: |
+          echo "🔄 Restarting AWS Load Balancer Controller..."
+          kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
+          sleep 30  # Give it time to restart
+
+      - name: Apply ArgoCD Application
+        run: |
+          echo "🚀 Applying ArgoCD application..."
           kubectl apply -f argocd/application.yaml
 
 
