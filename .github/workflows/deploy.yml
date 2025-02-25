@@ -212,7 +212,8 @@ jobs:
       # Step 11: Ensure IAM Policy is Fully Available Before Attaching with second step
       - name: Ensure IAM Policy is Fully Available Before Attaching
         run: |
-          POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${{ env.POLICY_NAME }}"
+          # POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${{ env.POLICY_NAME }}"
+          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController"
           echo "POLICY_ARN=$POLICY_ARN" >> $GITHUB_ENV
 
           MAX_RETRIES=12  # Allow up to 10 minutes for AWS policy propagation
@@ -261,7 +262,7 @@ jobs:
         run: |
           echo "🔍 Attaching IAM policy to EKS Node Role..."
           NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
-          POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${{ env.POLICY_NAME }}"
+          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController
 
           # Ensure policy exists before attaching
           if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
