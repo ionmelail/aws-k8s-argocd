@@ -252,39 +252,7 @@ jobs:
 
 
       
-      
-
-
-
-
-
-
-      # - name: Validate AWS Load Balancer IAM Policy
-      #   run: |
-      #     echo "Checking AWS IAM Policy for LoadBalancer Controller..."
-      #     AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-      #     POLICY_ARN="arn:aws:iam::$AWS_ACCOUNT_ID:policy/AmazonEKSLoadBalancerController"
-      
-      #     if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
-      #       echo "✅ IAM Policy exists: $POLICY_ARN"
-      #     else
-      #       echo "⚠️ WARNING: IAM Policy not found! Creating policy..."
-      #       aws iam create-policy --policy-name AmazonEKSLoadBalancerController \
-      #         --policy-document file://iam_policy.json
-      #     fi
-
-    
-      
-      # # ✅ Step X+2: Deploy AWS Load Balancer Controller
-      # - name: Deploy AWS Load Balancer Controller
-      #   run: |
-      #     kubectl apply -k github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master
-      #     helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
-      #       --set clusterName=my-cluster \
-      #       --set serviceAccount.create=false \
-      #       --set serviceAccount.name=aws-load-balancer-controller \
-      #       -n kube-system
-      #     echo "✅ AWS Load Balancer Controller installed!"
+  
 
 
 
@@ -321,10 +289,12 @@ jobs:
           fi
 
    
-      # 1️⃣5️⃣ Check Deployed ArgoCD Applications
-      - name: Check ArgoCD Applications
+      # 1️⃣5️⃣ Check all namespces 
+      - name: Check all namespces
         run: |
-          kubectl get applications -n argocd
+         kubectl get applications --all-namespaces
+         kubectl get secret --all-namespaces | grep argocd-initial-admin-secret
+
 
       # 1️⃣6️⃣ Restart ArgoCD Pods if Needed
       - name: Restart ArgoCD Pods if Needed
