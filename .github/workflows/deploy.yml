@@ -445,56 +445,84 @@ jobs:
           kubectl apply -f argocd/application.yaml
 
 
-      # 2️⃣0️⃣ Sync Application with ArgoCD
+        - name: Get ArgoCD Server Hostname
+        run: |
+          echo "🔄 Waiting for ArgoCD LoadBalancer hostname..."
+          for i in {1..10}; do
+            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+            if [[ -n "$ARGOCD_SERVER" ]]; then
+              echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
+              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+              exit 0
+            fi
+            echo "⏳ LoadBalancer hostname not available yet. Retrying in 30s..."
+            sleep 30
+          done
+          echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
+          exit 1
+
+      - name: Check DNS Resolution
+        run: |
+          echo "🔍 Checking DNS resolution for: $ARGOCD_SERVER"
+          for i in {1..5}; do
+            nslookup $ARGOCD_SERVER && exit 0
+            echo "⏳ DNS not resolved yet. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
+          exit 1
+
+      - name: Log into ArgoCD
+        run: |
+          echo "🔑 Logging into ArgoCD..."
+          argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
+          echo "✅ Successfully logged into ArgoCD"
+
+      - name: Ensure Admin Has Sync Permissions
+        run: |
+          echo "🔧 Ensuring 'admin' has sync permissions..."
+          argocd account update-password --current-password "password" --new-password "password"
+          argocd proj roles add-policy default sync demo-app --role admin --action sync --object applications
+          echo "✅ Permissions updated"
+
       - name: Sync ArgoCD Application
         run: |
-          echo "Syncing demo-app with ArgoCD..."
-          argocd app sync demo-app
-          echo "✅ ArgoCD application sync initiated."
+          echo "🚀 Syncing demo-app with ArgoCD..."
+          argocd app sync demo-app --server=$ARGOCD_SERVER
+          echo "✅ Sync initiated successfully"
+
+      - name: Wait for Sync Completion
+        run: |
+          echo "⏳ Waiting for ArgoCD sync to complete..."
+          for i in {1..10}; do
+            SYNC_STATUS=$(argocd app get demo-app --server=$ARGOCD_SERVER --output json | jq -r '.status.sync.status')
+            if [[ "$SYNC_STATUS" == "Synced" ]]; then
+              echo "✅ ArgoCD sync completed successfully!"
+              exit 0
+            fi
+            echo "⏳ Sync status: $SYNC_STATUS. Retrying in 30s..."
+            sleep 30
+          done
+          echo "❌ ERROR: ArgoCD sync did not complete in time."
+          exit 1
 
       - name: Port Forward as Fallback
         if: failure()
         run: |
           echo "⚠️ Using port-forwarding as a fallback..."
-          kubectl port-forward svc/argocd-server -n argocd 8080:443 & sleep 5
-          argocd login localhost:8080 --username admin --password "password" --insecure
+          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+          sleep 5
+
+          echo "🔑 Logging into ArgoCD via port-forward..."
+          argocd login localhost:8085 --username admin --password "password" --insecure
           echo "✅ Successfully logged in using port-forwarding"
 
           echo "🚀 Syncing demo-app with ArgoCD via port-forward..."
-          argocd app sync demo-app --server=localhost:8080
+          argocd app sync demo-app --server=localhost:8085 || (echo "❌ Sync failed via port-forwarding." && exit 1)
           echo "✅ Sync initiated successfully (fallback mode)"
 
-      # # 2️⃣1️⃣ Check All Namespaces
-      # - name: Check namespaces
-      #   run: |
-      #     kubectl get namespaces
+          echo "🛑 Cleaning up port-forwarding..."
+          kill $(cat port_forward_pid)
 
-      # # 2️⃣2️⃣ Verify Deployment of Demo-App
-      # - name: Verify Deployment
-      #   run: |
-      #     kubectl get pods -n demo-app
-      #     kubectl get svc -n demo-app
 
-      # # 2️⃣3️⃣ Debugging Step: Collect Logs if ArgoCD Fails
-      # - name: Debugging - Get Failing Pod Logs
-      #   if: failure()
-      #   run: |
-      #     echo "Fetching logs from ArgoCD pods..."
-      #     kubectl get pods -n argocd
-      #     kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server || true
-      #     kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller || true
-
-      # # 2️⃣4️⃣ Debugging Step: Describe Failing ArgoCD Pods
-      # - name: Debugging - Describe Failing Pods
-      #   if: failure()
-      #   run: |
-      #     echo "Describing problematic pods..."
-      #     kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-server || true
-      #     kubectl describe pod -n argocd -l app.kubernetes.io/name=argocd-application-controller || true
-
-      # # 2️⃣5️⃣ Debugging Step: Get Recent Kubernetes Events
-      # - name: Debugging - Get Kubernetes Events
-      #   if: failure()
-      #   run: |
-      #     echo "Checking Kubernetes events..."
-      #     kubectl get events -n argocd --sort-by=.metadata.creationTimestamp || true
+    
