@@ -263,7 +263,7 @@ jobs:
         run: |
           echo "🔍 Attaching IAM policy to EKS Node Role..."
           NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
-          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController
+          POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
 
           # Ensure policy exists before attaching
           if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
