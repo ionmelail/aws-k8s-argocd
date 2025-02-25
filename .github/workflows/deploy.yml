@@ -83,6 +83,8 @@ jobs:
           while [[ $(kubectl get pods -n argocd --no-headers | grep -c -v "Running") -ne 0 ]]; do
             echo "Some pods are still not ready..."
             kubectl get pods -n argocd
+            kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
             sleep 10
           done
           echo "All ArgoCD pods are running!"
