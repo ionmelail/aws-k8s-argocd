@@ -210,10 +210,11 @@ jobs:
       #       --approve
 
       # Step 11: Ensure IAM Policy is Fully Available Before Attaching with second step
-      - name: Ensure IAM Policy is Fully Available Before Attaching
+      - name: Ensure IAM Policy is Fully Available Before Attachingsec
         run: |
           # POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${{ env.POLICY_NAME }}"
-          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController"
+          POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
+
           echo "POLICY_ARN=$POLICY_ARN" >> $GITHUB_ENV
 
           MAX_RETRIES=12  # Allow up to 10 minutes for AWS policy propagation
