@@ -523,11 +523,11 @@ jobs:
           echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
           exit 1
 
-      - name: Log into ArgoCD
-        run: |
-          echo "🔑 Attempting to log into ArgoCD..."
-          argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
-          echo "✅ Successfully logged into ArgoCD"
+      # - name: Log into ArgoCD
+      #   run: |
+      #     echo "🔑 Attempting to log into ArgoCD..."
+      #     argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
+      #     echo "✅ Successfully logged into ArgoCD"
 
       - name: Ensure Admin Has Sync Permissions
         run: |
