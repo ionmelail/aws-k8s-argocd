@@ -476,23 +476,32 @@ jobs:
           echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
           exit 1
 
-      - name: Ensure Admin Has Sync Permissions
+      - name: Wait for ArgoCD LoadBalancer Provisioning
         run: |
-          echo "🔧 Ensuring 'admin' has sync permissions..."
-          argocd account update-password --current-password "password" --new-password "password"
-          argocd proj roles add-policy default sync demo-app --role admin --action sync --object applications
-          echo "✅ Permissions updated"
-
-      - name: Check DNS Resolution
-        run: |
-          echo "🔍 Checking DNS resolution for: $ARGOCD_SERVER"
-          for i in {1..5}; do
-            nslookup $ARGOCD_SERVER && exit 0
-            echo "⏳ DNS not resolved yet. Retrying in 20s..."
-            sleep 20
+          echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
+          for i in {1..10}; do
+            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+            if [[ -n "$ARGOCD_SERVER" ]]; then
+              echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
+              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+              exit 0
+            fi
+            echo "⏳ LoadBalancer not ready yet. Retrying in 30s..."
+            sleep 30
           done
-          echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
+          echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
           exit 1
+
+      # - name: Check DNS Resolution
+      #   run: |
+      #     echo "🔍 Checking DNS resolution for: $ARGOCD_SERVER"
+      #     for i in {1..5}; do
+      #       nslookup $ARGOCD_SERVER && exit 0
+      #       echo "⏳ DNS not resolved yet. Retrying in 20s..."
+      #       sleep 20
+      #     done
+      #     echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
+      #     exit 1
 
       # - name: Log into ArgoCD
       #   run: |
@@ -500,7 +509,21 @@ jobs:
       #     argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
       #     echo "✅ Successfully logged into ArgoCD"
 
+      - name: Ensure Admin Has Sync Permissions
+        run: |
+          echo "🔧 Ensuring 'admin' has sync permissions..."
+          argocd proj role add-policy default admin --action get --object applications --permission allow
+          argocd proj role add-policy default admin --action sync --object applications --permission allow
+          argocd proj role add-policy default admin --action create --object applications --permission allow
+          argocd proj role add-policy default admin --action delete --object applications --permission allow
+          echo "✅ Permissions updated"
 
+      - name: Restart ArgoCD Server
+        run: |
+          echo "🔄 Restarting ArgoCD to apply permissions..."
+          kubectl rollout restart deployment argocd-server -n argocd
+          sleep 30
+          echo "✅ Restart complete"
 
       - name: Sync ArgoCD Application
         run: |
@@ -531,7 +554,7 @@ jobs:
           sleep 5
 
           echo "🔑 Logging into ArgoCD via port-forward..."
-          argocd login localhost:8085 --username admin --password "password" --insecure
+          argocd login localhost:8085 --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
           echo "✅ Successfully logged in using port-forwarding"
 
           echo "🚀 Syncing demo-app with ArgoCD via port-forward..."
