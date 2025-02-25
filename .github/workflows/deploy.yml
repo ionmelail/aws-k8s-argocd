@@ -445,7 +445,7 @@ jobs:
           kubectl apply -f argocd/application.yaml
 
 
-        - name: Get ArgoCD Server Hostname
+      - name: Get ArgoCD Server Hostname
         run: |
           echo "🔄 Waiting for ArgoCD LoadBalancer hostname..."
           for i in {1..10}; do
