@@ -8,6 +8,12 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-west-2
+      CLUSTER_NAME: my-cluster
+      POLICY_NAME: AmazonEKSLoadBalancerController
+      SERVICE_ACCOUNT_NAMESPACE: kube-system
+      SERVICE_ACCOUNT_NAME: aws-load-balancer-controller
     steps:
     
       # 1️⃣ Checkout Repository Code
@@ -27,12 +33,12 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
 
-      # # 4️⃣ Make Deployment Script Executable & Run It
-      # - name: Make Deployment Script Executable
-      #   run: chmod +x scripts/Aws_K8s_Argocd.sh  
+      # 4️⃣ Make Deployment Script Executable & Run It
+      - name: Make Deployment Script Executable
+        run: chmod +x scripts/Aws_K8s_Argocd.sh  
 
-      # - name: Run Deployment Script
-      #   run: ./scripts/Aws_K8s_Argocd.sh  
+      - name: Run Deployment Script
+        run: ./scripts/Aws_K8s_Argocd.sh  
 
       # 5️⃣ Initialize and Apply Terraform Configuration for EKS
       - name: Terraform Init & Apply
@@ -182,6 +188,28 @@ jobs:
           exit 1
 
 
+      # Step 11: Ensure IAM Policy is Fully Available Before Attaching with second step
+      - name: Ensure IAM Policy is Fully Available Before Attaching
+        run: |
+          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/${{ env.POLICY_NAME }}"
+          MAX_RETRIES=12  # Allow up to 10 minutes for AWS policy propagation
+          WAIT_TIME=30  # Start with 30 seconds, increase exponentially
+
+          echo "✅ Ensuring IAM policy exists before attaching..."
+          for i in $(seq 1 $MAX_RETRIES); do
+            if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
+              echo "✅ IAM Policy is now available!"
+              exit 0
+            fi
+            echo "⏳ IAM Policy not available yet. Retrying in $WAIT_TIME seconds..."
+            sleep $WAIT_TIME
+            WAIT_TIME=$((WAIT_TIME * 2))  # Exponential backoff (30s, 60s, 120s, etc.)
+          done
+
+          echo "❌ ERROR: IAM Policy did not become available in time!"
+          exit 1     
+
+
       - name: Install AWS Load Balancer Controller
         run: |
           echo "Checking AWS Load Balancer Controller in cluster..."
@@ -199,13 +227,20 @@ jobs:
             echo "✅ AWS Load Balancer Controller is already installed."
           fi
       
-      # 🔹 Step 3: Attach IAM Policy to EKS Node Role
+  # Step 12: Attach IAM Policy to EKS Node Role
       - name: Attach IAM Policy to EKS Node Role
         run: |
           echo "🔍 Attaching IAM policy to EKS Node Role..."
-          NODE_ROLE=$(aws eks describe-cluster --name my-cluster --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
-          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController"
-          
+          NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
+          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/${{ env.POLICY_NAME }}"
+
+          # Ensure policy exists before attaching
+          if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
+            echo "❌ ERROR: IAM Policy does not exist!"
+            exit 1
+          fi
+
+          # Check if policy is already attached
           if aws iam list-attached-role-policies --role-name "$NODE_ROLE" --query "AttachedPolicies[?PolicyArn=='$POLICY_ARN']" --output text | grep -q "$POLICY_ARN"; then
             echo "✅ IAM Policy is already attached to $NODE_ROLE."
           else
