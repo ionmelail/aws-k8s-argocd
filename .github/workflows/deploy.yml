@@ -360,49 +360,6 @@ jobs:
           kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
           exit 1
 
-name: ArgoCD Login Check
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-jobs:
-  argocd-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Kubernetes CLI
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
-      - name: Configure Kubernetes Context
-        run: |
-          echo "${{ secrets.KUBECONFIG }}" | base64 --decode > kubeconfig
-          export KUBECONFIG=$PWD/kubeconfig
-          kubectl config use-context your-cluster-name
-
-      - name: Check ArgoCD Service Availability
-        run: |
-          ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-          if [[ -z "$ARGOCD_SERVER" ]]; then
-            echo "ArgoCD LoadBalancer hostname is not available. Retrying in 60s..."
-            sleep 60
-            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-          fi
-          
-          if [[ -z "$ARGOCD_SERVER" ]]; then
-            echo "❌ ERROR: ArgoCD LoadBalancer hostname is still not available."
-            exit 1
-          fi
-
-          echo "✅ ArgoCD LoadBalancer hostname: $ARGOCD_SERVER"
-          echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-
       - name: Check DNS Resolution
         run: |
           nslookup $ARGOCD_SERVER || (echo "❌ ERROR: DNS resolution failed." && exit 1)
