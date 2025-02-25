@@ -20,6 +20,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Retrieve AWS Account ID
+        id: aws_account
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          echo "AWS_ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
+
  
       #  Step 2: Configure AWS Credentials using GitHub Secrets
       - name: Configure AWS Credentials
@@ -176,7 +182,7 @@ jobs:
           echo "✅ Ensuring IAM policy exists before attaching..."
           for i in $(seq 1 $MAX_RETRIES); do
             if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
-              echo "✅ IAM Policy is now available!"
+              echo "✅ IAM Policy found: $POLICY_ARN"
               echo "::set-output name=policy_arn::$POLICY_ARN"
               exit 0
             fi
@@ -206,7 +212,9 @@ jobs:
       # Step 11: Ensure IAM Policy is Fully Available Before Attaching with second step
       - name: Ensure IAM Policy is Fully Available Before Attaching
         run: |
-          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/${{ env.POLICY_NAME }}"
+          POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${{ env.POLICY_NAME }}"
+          echo "POLICY_ARN=$POLICY_ARN" >> $GITHUB_ENV
+
           MAX_RETRIES=12  # Allow up to 10 minutes for AWS policy propagation
           WAIT_TIME=30  # Start with 30 seconds, increase exponentially
 
@@ -253,7 +261,7 @@ jobs:
         run: |
           echo "🔍 Attaching IAM policy to EKS Node Role..."
           NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
-          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/${{ env.POLICY_NAME }}"
+          POLICY_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:policy/${{ env.POLICY_NAME }}"
 
           # Ensure policy exists before attaching
           if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
