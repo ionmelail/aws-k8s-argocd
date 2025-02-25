@@ -289,11 +289,11 @@ jobs:
           fi
 
    
-      # 1️⃣5️⃣ Check all namespces 
-      - name: Check all namespces
-        run: |
-         kubectl get applications --all-namespaces
-         kubectl get secret --all-namespaces | grep argocd-initial-admin-secret
+      # # 1️⃣5️⃣ Check all namespces 
+      # - name: Check all namespces
+      #   run: |
+      #    kubectl get applications --all-namespaces
+      #    kubectl get secret --all-namespaces | grep argocd-initial-admin-secret
 
 
       # 1️⃣6️⃣ Restart ArgoCD Pods if Needed
@@ -378,6 +378,8 @@ jobs:
       - name: Get ArgoCD Admin Password
         run: |
           echo "Retrieving ArgoCD admin password..."
+                                 
+
           ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
           if [[ -z "$ARGOCD_ADMIN_PASSWORD" ]]; then
             echo "❌ ERROR: Unable to retrieve ArgoCD admin password."
