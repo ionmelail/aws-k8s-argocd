@@ -476,6 +476,13 @@ jobs:
           echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
           exit 1
 
+      - name: Ensure Admin Has Sync Permissions
+        run: |
+          echo "🔧 Ensuring 'admin' has sync permissions..."
+          argocd account update-password --current-password "password" --new-password "password"
+          argocd proj roles add-policy default sync demo-app --role admin --action sync --object applications
+          echo "✅ Permissions updated"
+
       - name: Check DNS Resolution
         run: |
           echo "🔍 Checking DNS resolution for: $ARGOCD_SERVER"
@@ -493,12 +500,7 @@ jobs:
       #     argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
       #     echo "✅ Successfully logged into ArgoCD"
 
-      - name: Ensure Admin Has Sync Permissions
-        run: |
-          echo "🔧 Ensuring 'admin' has sync permissions..."
-          argocd account update-password --current-password "password" --new-password "password"
-          argocd proj roles add-policy default sync demo-app --role admin --action sync --object applications
-          echo "✅ Permissions updated"
+
 
       - name: Sync ArgoCD Application
         run: |
