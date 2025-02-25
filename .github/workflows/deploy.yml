@@ -159,52 +159,60 @@ jobs:
 
 
 
-      # 🔹 Install AWS Load Balancer Controller
-      - name: Install AWS Load Balancer Controller
+      # # 🔹 Install AWS Load Balancer Controller
+      # - name: Install AWS Load Balancer Controller
+      #   run: |
+      #     echo "Checking AWS Load Balancer Controller in cluster..."
+      #     if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
+      #       echo "🚀 Installing AWS Load Balancer Controller..."
+      #       eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
+      #       helm repo add eks https://aws.github.io/eks-charts
+      #       helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+      #         --set clusterName=my-cluster \
+      #         --set serviceAccount.create=true \
+      #         --set region=us-west-2 \
+      #         --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
+      #         -n kube-system
+      #     else
+      #       echo "✅ AWS Load Balancer Controller is already installed."
+      #     fi
+      
+      
+      # 🔹 Ensure AWS Load Balancer Controller IAM Policy Has Correct Permissions
+      - name: Attach Permissions to AWS Load Balancer IAM Policy
         run: |
-          echo "Checking AWS Load Balancer Controller in cluster..."
-          if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
-            echo "🚀 Installing AWS Load Balancer Controller..."
-            eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
-            helm repo add eks https://aws.github.io/eks-charts
-            helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-              --set clusterName=my-cluster \
-              --set serviceAccount.create=true \
-              --set region=us-west-2 \
-              --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
-              -n kube-system
-          else
-            echo "✅ AWS Load Balancer Controller is already installed."
-          fi
-
-
-
-      # ✅ Step X: Ensure AWS Load Balancer Controller IAM Policy Exists
-      - name: Ensure AWS Load Balancer Controller IAM Policy Exists
-        run: |
-          echo "Checking AWS IAM Policy for LoadBalancer Controller..."
+          echo "🔍 Checking and attaching permissions to AmazonEKSLoadBalancerController policy..."
           
-          # Check if the policy already exists
-          POLICY_ARN=$(aws iam list-policies --query "Policies[?PolicyName=='AmazonEKSLoadBalancerController'].Arn" --output text)
-          
-          if [ -z "$POLICY_ARN" ]; then
-            echo "⚠️ WARNING: IAM Policy not found! Creating policy..."
-            
-            # Download the IAM policy file
-            curl -s -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
-            
-            # Ensure the file was downloaded successfully
-            if [ ! -f "iam_policy.json" ]; then
-              echo "❌ ERROR: Failed to download iam_policy.json"
-              exit 1
-            fi
-            
-            # Create the IAM policy
-            aws iam create-policy --policy-name AmazonEKSLoadBalancerController --policy-document file://iam_policy.json
-            echo "✅ Successfully created AmazonEKSLoadBalancerController IAM policy!"
-          else
-            echo "✅ IAM Policy already exists: $POLICY_ARN"
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          POLICY_ARN="arn:aws:iam::$AWS_ACCOUNT_ID:policy/AmazonEKSLoadBalancerController"
+      
+          # Download the official AWS IAM policy JSON
+          curl -s -o iam_policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+      
+          # Ensure the file was downloaded successfully
+          if [ ! -f "iam_policy.json" ]; then
+            echo "❌ ERROR: Failed to download iam_policy.json"
+            exit 1
           fi
+      
+          # Check if the policy has existing versions
+          POLICY_VERSIONS=$(aws iam list-policy-versions --policy-arn "$POLICY_ARN" --query "Versions[].VersionId" --output text)
+          
+          # Delete older versions if there are more than 5 (IAM policies have a limit)
+          while [ "$(echo "$POLICY_VERSIONS" | wc -w)" -ge 5 ]; do
+            OLDEST_VERSION=$(echo "$POLICY_VERSIONS" | awk '{print $1}')
+            echo "🗑 Removing old policy version: $OLDEST_VERSION"
+            aws iam delete-policy-version --policy-arn "$POLICY_ARN" --version-id "$OLDEST_VERSION"
+            POLICY_VERSIONS=$(aws iam list-policy-versions --policy-arn "$POLICY_ARN" --query "Versions[].VersionId" --output text)
+          done
+      
+          # Create a new version of the policy with correct permissions
+          echo "🔄 Updating IAM Policy with correct permissions..."
+          aws iam create-policy-version --policy-arn "$POLICY_ARN" --policy-document file://iam_policy.json --set-as-default
+      
+          echo "✅ Permissions successfully attached to AmazonEKSLoadBalancerController IAM Policy!"
+
+
 
       # 🔹 Ensure IAM Policy is Fully Available Before Attaching
       - name: Ensure IAM Policy Exists Before Attaching
@@ -234,27 +242,27 @@ jobs:
 
 
       
-      # ✅ Step X: Ensure IAM Policy is Fully Available Before Attaching
-      - name: Ensure IAM Policy Exists Before Attaching
-        run: |
-          POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController"
-          MAX_RETRIES=15  # Allow up to ~8 minutes for IAM policy propagation
-          WAIT_TIME=30  # Start with 30 seconds
+      # # ✅ Step X: Ensure IAM Policy is Fully Available Before Attaching
+      # - name: Ensure IAM Policy Exists Before Attaching
+      #   run: |
+      #     POLICY_ARN="arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:policy/AmazonEKSLoadBalancerController"
+      #     MAX_RETRIES=15  # Allow up to ~8 minutes for IAM policy propagation
+      #     WAIT_TIME=30  # Start with 30 seconds
 
-          echo "✅ Ensuring IAM policy exists before attaching..."
+      #     echo "✅ Ensuring IAM policy exists before attaching..."
           
-          for i in $(seq 1 $MAX_RETRIES); do
-            if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
-              echo "✅ IAM Policy is now available!"
-              exit 0
-            fi
-            echo "⏳ IAM Policy not available yet. Retrying in $WAIT_TIME seconds..."
-            sleep $WAIT_TIME
-            WAIT_TIME=$((WAIT_TIME * 2))  # Exponential backoff (30s, 60s, 120s, etc.)
-          done
+      #     for i in $(seq 1 $MAX_RETRIES); do
+      #       if aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
+      #         echo "✅ IAM Policy is now available!"
+      #         exit 0
+      #       fi
+      #       echo "⏳ IAM Policy not available yet. Retrying in $WAIT_TIME seconds..."
+      #       sleep $WAIT_TIME
+      #       WAIT_TIME=$((WAIT_TIME * 2))  # Exponential backoff (30s, 60s, 120s, etc.)
+      #     done
 
-          echo "❌ ERROR: IAM Policy did not become available in time!"
-          exit 1
+      #     echo "❌ ERROR: IAM Policy did not become available in time!"
+      #     exit 1
 
 
 
@@ -276,22 +284,22 @@ jobs:
               --policy-document file://iam_policy.json
           fi
 
-          - name: Install AWS Load Balancer Controller
-            run: |
-              echo "Checking AWS Load Balancer Controller in cluster..."
-              if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
-                echo "🚀 Installing AWS Load Balancer Controller..."
-                eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
-                helm repo add eks https://aws.github.io/eks-charts
-                helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-                  --set clusterName=my-cluster \
-                  --set serviceAccount.create=true \
-                  --set region=us-west-2 \
-                  --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
-                  -n kube-system
-              else
-                echo "✅ AWS Load Balancer Controller is already installed."
-              fi
+          # - name: Install AWS Load Balancer Controller
+          #   run: |
+          #     echo "Checking AWS Load Balancer Controller in cluster..."
+          #     if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
+          #       echo "🚀 Installing AWS Load Balancer Controller..."
+          #       eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
+          #       helm repo add eks https://aws.github.io/eks-charts
+          #       helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+          #         --set clusterName=my-cluster \
+          #         --set serviceAccount.create=true \
+          #         --set region=us-west-2 \
+          #         --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
+          #         -n kube-system
+          #     else
+          #       echo "✅ AWS Load Balancer Controller is already installed."
+          #     fi
   
 
           
