@@ -301,10 +301,10 @@ jobs:
       # 1️⃣6️⃣ Restart ArgoCD Pods if Needed
       - name: Restart ArgoCD Pods if Needed
         run: |
-          kubectl -n argocd patch secret argocd-secret -p '{"stringData": {
-          "admin.password": "<$2b$05$hAhH16nW1N4VlH8Uy1HiBe/FoBPjMt9gfZaYIOZ/SsN7gdsBEsIWi
-          >",
-          "admin.passwordMtime": "'$(date +%FT%T%Z)'"
+          kubectl -n argocd patch secret argocd-secret \
+          -p '{"stringData": {
+            "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
+            "admin.passwordMtime": "'$(date +%FT%T%Z)'"
           }}'
           if [[ $(kubectl get pods -n argocd | grep -c "Running") -lt 5 ]]; then
             kubectl delete pod -n argocd --all
