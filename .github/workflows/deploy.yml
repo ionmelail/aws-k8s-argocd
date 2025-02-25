@@ -372,10 +372,10 @@ jobs:
           kubectl rollout status deployment/argocd-server -n argocd --timeout=120s || \
           (echo "❌ ERROR: ArgoCD deployment is not ready" && exit 1)
 
-      - name: Log into ArgoCD
-        run: |
-          argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
-          echo "✅ Successfully logged into ArgoCD"
+      # - name: Log into ArgoCD
+      #   run: |
+      #     argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
+      #     echo "✅ Successfully logged into ArgoCD"
 
       - name: Port Forward as Fallback
         if: failure()
