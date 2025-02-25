@@ -487,11 +487,11 @@ jobs:
           echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
           exit 1
 
-      - name: Log into ArgoCD
-        run: |
-          echo "🔑 Logging into ArgoCD..."
-          argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
-          echo "✅ Successfully logged into ArgoCD"
+      # - name: Log into ArgoCD
+      #   run: |
+      #     echo "🔑 Logging into ArgoCD..."
+      #     argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
+      #     echo "✅ Successfully logged into ArgoCD"
 
       - name: Ensure Admin Has Sync Permissions
         run: |
