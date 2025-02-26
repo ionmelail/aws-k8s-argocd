@@ -598,6 +598,23 @@ jobs:
           echo "✅ Restart complete"
 
 
+
+      - name: Log into ArgoCD (Ignoring Certificate Errors)
+        run: |
+          echo "🔑 Attempting to log into ArgoCD..."
+          for i in {1..5}; do
+            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
+              echo "✅ Successfully logged into ArgoCD"
+              exit 0
+            fi
+            echo "⏳ Login failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: ArgoCD login failed"
+          exit 1
+
+
+
       - name: Assign Full Sync Permissions to 'admin' Role
         run: |
           echo "🔧 Assigning full sync permissions to 'admin' role..."
