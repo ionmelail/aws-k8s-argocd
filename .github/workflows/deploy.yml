@@ -555,9 +555,18 @@ jobs:
           exit 1
 
    
+      - name: Ensure Admin Role Exists in ArgoCD Default Project
+        run: |
+          echo "🔧 Checking if 'admin' role exists in 'default' project..."
+          if ! argocd proj role list default | grep -q "admin"; then
+            echo "🔄 Creating 'admin' role in 'default' project..."
+            argocd proj role create default admin
+          fi
+          echo "✅ 'admin' role exists in 'default' project"
+
       - name: Ensure Admin Has Sync Permissions
         run: |
-          echo "🔧 Ensuring 'admin' has sync permissions..."
+          echo "🔧 Assigning sync permissions to 'admin' role..."
           argocd proj role add-policy default admin --action get --object applications --permission allow
           argocd proj role add-policy default admin --action sync --object applications --permission allow
           argocd proj role add-policy default admin --action create --object applications --permission allow
