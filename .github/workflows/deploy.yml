@@ -564,6 +564,15 @@ jobs:
       #     fi
       #     echo "✅ 'admin' role exists in 'default' project"
 
+      - name: Ensure 'default' Project Exists
+        run: |
+          echo "🔧 Checking if 'default' project exists..."
+          if ! argocd proj get default; then
+            echo "🔄 Creating 'default' project..."
+            argocd proj create default
+          fi
+          echo "✅ 'default' project exists"
+
       - name: Ensure 'admin' Role Exists in Project
         run: |
           echo "🔧 Checking if 'admin' role exists in 'default' project..."
