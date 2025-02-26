@@ -626,13 +626,13 @@ jobs:
           argocd proj role add-policy default admin -a delete -o applications/* -p allow
           echo "✅ Permissions updated"
 
-      - name: Ensure Project-Level Access for 'admin' Role
-        run: |
-          echo "🔧 Ensuring 'admin' role has project-level access..."
-          argocd proj add-role default admin
-          argocd proj role add-policy default admin -a get -o projects/* -p allow
-          argocd proj role add-policy default admin -a update -o projects/* -p allow
-          echo "✅ Project-level permissions granted"
+      # - name: Ensure Project-Level Access for 'admin' Role
+      #   run: |
+      #     echo "🔧 Ensuring 'admin' role has project-level access..."
+      #     argocd proj add-role default admin
+      #     argocd proj role add-policy default admin -a get -o projects/* -p allow
+      #     argocd proj role add-policy default admin -a update -o projects/* -p allow
+      #     echo "✅ Project-level permissions granted"
 
 
       - name: Assign Namespace & Cluster-Level Access
@@ -642,38 +642,38 @@ jobs:
           argocd proj allow-namespace-resource default "*" "*"
           echo "✅ Namespace and cluster-wide access granted"
 
-      - name: Modify ArgoCD RBAC Configuration
-        run: |
-          echo "🔧 Modifying ArgoCD RBAC settings in argocd-cm..."
-          kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"policy.default":"role:admin"}}'
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p '{"data":{"policy.csv":"p, role:admin, applications, *, */*, allow"}}'
-          kubectl rollout restart deployment argocd-server -n argocd
-          sleep 30
-          echo "✅ RBAC settings updated and ArgoCD restarted"
+      # - name: Modify ArgoCD RBAC Configuration
+      #   run: |
+      #     echo "🔧 Modifying ArgoCD RBAC settings in argocd-cm..."
+      #     kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"policy.default":"role:admin"}}'
+      #     kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p '{"data":{"policy.csv":"p, role:admin, applications, *, */*, allow"}}'
+      #     kubectl rollout restart deployment argocd-server -n argocd
+      #     sleep 30
+      #     echo "✅ RBAC settings updated and ArgoCD restarted"
 
 
 
-      - name: Restart ArgoCD Server to Apply Permissions
-        run: |
-          echo "🔄 Restarting ArgoCD to apply new permissions..."
-          kubectl rollout restart deployment argocd-server -n argocd
-          sleep 30
-          echo "✅ Restart complete"
+      # - name: Restart ArgoCD Server to Apply Permissions
+      #   run: |
+      #     echo "🔄 Restarting ArgoCD to apply new permissions..."
+      #     kubectl rollout restart deployment argocd-server -n argocd
+      #     sleep 30
+      #     echo "✅ Restart complete"
 
 
-      - name: Re-authenticate with ArgoCD Before Sync
-        run: |
-          echo "🔑 Attempting to log into ArgoCD..."
-          for i in {1..5}; do
-            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
-              echo "✅ Successfully reath  into ArgoCD"
-              exit 0
-            fi
-            echo "⏳ Login failed. Retrying in 20s..."
-            sleep 20
-          done
-          echo "❌ ERROR: ArgoCD login failed"
-          exit 1
+      # - name: Re-authenticate with ArgoCD Before Sync
+      #   run: |
+      #     echo "🔑 Attempting to log into ArgoCD..."
+      #     for i in {1..5}; do
+      #       if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
+      #         echo "✅ Successfully reath  into ArgoCD"
+      #         exit 0
+      #       fi
+      #       echo "⏳ Login failed. Retrying in 20s..."
+      #       sleep 20
+      #     done
+      #     echo "❌ ERROR: ArgoCD login failed"
+      #     exit 1
 
           
       - name: Verify 'admin' Role Permissions
