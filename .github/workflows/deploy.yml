@@ -491,6 +491,7 @@ jobs:
           done
           echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
           exit 1
+
       - name: Wait for ArgoCD LoadBalancer to be Reachable
         run: |
           echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
@@ -510,6 +511,8 @@ jobs:
             exit 1
           fi
 
+      - name: Wait for DNS Resolution
+        run: |
           echo "🔍 Waiting for DNS resolution..."
           for i in {1..10}; do
             if nslookup $ARGOCD_SERVER; then
@@ -523,12 +526,35 @@ jobs:
           echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
           exit 1
 
-      - name: Log into ArgoCD
+      - name: Wait for LoadBalancer to Accept Connections
+        run: |
+          echo "🔄 Waiting for ArgoCD LoadBalancer to accept connections..."
+          for i in {1..10}; do
+            if curl -k --connect-timeout 5 https://$ARGOCD_SERVER; then
+              echo "✅ LoadBalancer is accepting connections!"
+              exit 0
+            fi
+            echo "⏳ LoadBalancer not accepting connections yet. Retrying in 30s..."
+            sleep 30
+          done
+          echo "❌ ERROR: LoadBalancer is not accepting connections."
+          exit 1
+
+      - name: Log into ArgoCD (Ignoring Certificate Errors)
         run: |
           echo "🔑 Attempting to log into ArgoCD..."
-          argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
-          echo "✅ Successfully logged into ArgoCD"
+          for i in {1..5}; do
+            if argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure; then
+              echo "✅ Successfully logged into ArgoCD"
+              exit 0
+            fi
+            echo "⏳ Login failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: ArgoCD login failed"
+          exit 1
 
+   
       - name: Ensure Admin Has Sync Permissions
         run: |
           echo "🔧 Ensuring 'admin' has sync permissions..."
