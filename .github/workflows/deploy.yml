@@ -694,12 +694,47 @@ jobs:
           echo "❌ ERROR: ArgoCD login failed"
           exit 1
 
+      - name: Wait for ArgoCD Server to Be Ready
+        run: |
+          echo "🔄 Waiting for ArgoCD server pods to be ready..."
+          for i in {1..10}; do
+            if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
+              echo "✅ ArgoCD server is running!"
+              exit 0
+            fi
+            echo "⏳ ArgoCD server not ready yet. Retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ ERROR: ArgoCD server did not start in time."
+          exit 1
+
       - name: Start Port-Forwarding for ArgoCD
         run: |
           echo "🔄 Starting port-forwarding to ArgoCD..."
           kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
           sleep 5
           echo "✅ Port-forwarding started successfully"
+
+      - name: Ensure ArgoCD Server is Reachable
+        run: |
+          echo "🔍 Checking if ArgoCD is reachable..."
+          for i in {1..5}; do
+            if nc -z localhost 8085; then
+              echo "✅ ArgoCD is accessible on localhost:8085"
+              exit 0
+            fi
+            echo "⏳ Waiting for ArgoCD port-forward..."
+            sleep 5
+          done
+          echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
+          exit 1
+
+      - name: Ensure 'demo-app' Is Assigned to 'default' Project
+        run: |
+          echo "🔍 Checking if 'admin' owns 'demo-app'..."
+          argocd app set demo-app --project default --server=localhost:8085
+          echo "✅ 'demo-app' ownership reassigned to 'default' proj
+
 
       - name: Ensure 'demo-app' Is Assigned to 'default' Project
         run: |
