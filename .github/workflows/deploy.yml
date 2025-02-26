@@ -694,6 +694,13 @@ jobs:
           echo "❌ ERROR: ArgoCD login failed"
           exit 1
 
+      - name: Start Port-Forwarding for ArgoCD
+        run: |
+          echo "🔄 Starting port-forwarding to ArgoCD..."
+          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+          sleep 5
+          echo "✅ Port-forwarding started successfully"
+
       - name: Ensure 'demo-app' Is Assigned to 'default' Project
         run: |
           echo "🔍 Checking if 'admin' owns 'demo-app'..."
