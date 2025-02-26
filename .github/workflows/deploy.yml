@@ -575,25 +575,25 @@ jobs:
           echo "❌ ERROR: ArgoCD server did not start in time."
           exit 1
 
-      - name: Start Port-Forwarding for ArgoCD
-        run: |
-          echo "🔄 Starting port-forwarding to ArgoCD..."
-          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
-          sleep 5
-          echo "✅ Port-forwarding started successfully"
+      # - name: Start Port-Forwarding for ArgoCD
+      #   run: |
+      #     echo "🔄 Starting port-forwarding to ArgoCD..."
+      #     kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+      #     sleep 5
+      #     echo "✅ Port-forwarding started successfully"
 
-      - name: Ensure ArgoCD Server is Reachable
-        run: |
-          echo "🔍 Checking if ArgoCD is reachable..."
-          for i in {1..5}; do
-            if nc -z localhost 8085; then
-              echo "✅ ArgoCD is accessible on localhost:8085"
-              exit 0
-            fi
-            echo "⏳ Waiting for ArgoCD port-forward..."
-            sleep 5
-          done
-          echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
+      # - name: Ensure ArgoCD Server is Reachable
+      #   run: |
+      #     echo "🔍 Checking if ArgoCD is reachable..."
+      #     for i in {1..5}; do
+      #       if nc -z localhost 8085; then
+      #         echo "✅ ArgoCD is accessible on localhost:8085"
+      #         exit 0
+      #       fi
+      #       echo "⏳ Waiting for ArgoCD port-forward..."
+      #       sleep 5
+      #     done
+      #     echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
 
 
 
