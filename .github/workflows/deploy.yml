@@ -567,20 +567,39 @@ jobs:
       - name: Assign Full Sync Permissions to 'admin' Role
         run: |
           echo "🔧 Assigning full sync permissions to 'admin' role..."
-          argocd proj role add-policy default admin --action get --object applications/* --permission allow
-          argocd proj role add-policy default admin --action sync --object applications/* --permission allow
-          argocd proj role add-policy default admin --action update --object applications/* --permission allow
-          argocd proj role add-policy default admin --action override --object applications/* --permission allow
-          argocd proj role add-policy default admin --action create --object applications/* --permission allow
-          argocd proj role add-policy default admin --action delete --object applications/* --permission allow
+          argocd proj role add-policy default admin --action get --object applications, * --permission allow
+          argocd proj role add-policy default admin --action sync --object applications, * --permission allow
+          argocd proj role add-policy default admin --action update --object applications, * --permission allow
+          argocd proj role add-policy default admin --action override --object applications, * --permission allow
+          argocd proj role add-policy default admin --action create --object applications, * --permission allow
+          argocd proj role add-policy default admin --action delete --object applications, * --permission allow
           echo "✅ Permissions updated"
 
-      - name: Assign Project-Level Access
+      - name: Ensure Project-Level Access for 'admin' Role
         run: |
-          echo "🔧 Assigning project-level access to 'admin' role..."
+          echo "🔧 Ensuring 'admin' role has project-level access..."
+          argocd proj add-role default admin
+          argocd proj role add-policy default admin --action get --object projects/* --permission allow
+          argocd proj role add-policy default admin --action update --object projects/* --permission allow
+          echo "✅ Project-level permissions granted"
+
+      - name: Assign Namespace & Cluster-Level Access
+        run: |
+          echo "🔧 Assigning namespace and cluster-level access to 'admin' role..."
           argocd proj allow-cluster-resource default "*" "*"
           argocd proj allow-namespace-resource default "*" "*"
-          echo "✅ Project-level access granted"
+          echo "✅ Namespace and cluster-wide access granted"
+
+      - name: Modify ArgoCD RBAC Configuration
+        run: |
+          echo "🔧 Modifying ArgoCD RBAC settings in argocd-cm..."
+          kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"policy.default":"role:admin"}}'
+          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p '{"data":{"policy.csv":"p, role:admin, applications, *, */*, allow"}}'
+          kubectl rollout restart deployment argocd-server -n argocd
+          sleep 30
+          echo "✅ RBAC settings updated and ArgoCD restarted"
+
+
 
       - name: Restart ArgoCD Server to Apply Permissions
         run: |
