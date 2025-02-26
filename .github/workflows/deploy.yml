@@ -573,48 +573,22 @@ jobs:
           fi
           echo "✅ 'default' project exists"
 
-      # - name: Ensure 'admin' Role Exists in Project
-      #   run: |
-      #     echo "🔧 Checking if 'admin' role exists in 'default' project..."
-      #     if ! argocd proj role get default admin; then
-      #       echo "🔄 Creating 'admin' role in 'default' project..."
-      #       argocd proj add-role default admin
-      #     fi
-      #     echo "✅ 'admin' role exists in 'default' project"
-
-         
-      # - name: Ensure Admin Role Exists in ArgoCD Default Project
-      #   run: |
-      #     echo "🔧 Checking if 'admin' role exists in 'default' project..."
-      #     if ! argocd proj role list default | grep -q "admin"; then
-      #       echo "🔄 Creating 'admin' role in 'default' project..."
-      #       argocd proj role create default admin
-      #     fi
-      #     echo "✅ 'admin' role exists in 'default' project"
-
-
-      # - name: Ensure 'admin' Role Exists in Project
-      #   run: |
-      #     echo "🔧 Checking if 'admin' role exists in 'default' project..."
-      #     if ! argocd proj role list default | grep -q "admin"; then
-      #       echo "🔄 Creating 'admin' role in 'default' project..."
-      #       argocd proj role add-policy default admin -a get -o applications/* -p allow
-      #     fi
-      #     echo "✅ 'admin' role exists in 'default' project"
-      
-      - name: Force Create 'admin' Role in Project
+      - name: Ensure 'admin' Role Exists in Project
         run: |
-          echo "🔧 Forcing creation of 'admin' role in 'default' project..."
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
-            '{"data":{"policy.csv":"p, proj:default:admin, applications, get, default/applications/*, allow"}}'
+          echo "🔧 Checking if 'admin' role exists in 'default' project..."
+          if ! argocd proj role list default | grep -q "admin"; then
+            echo "🔄 Creating 'admin' role in 'default' project..."
+            argocd proj role create default admin
+          fi
+          echo "✅ 'admin' role exists in 'default' project"
 
-          kubectl -n argocd patch secret argocd-secret \
-          -p '{"stringData": {
-            "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
-            "admin.passwordMtime": "'$(date +%FT%T%Z)'"
-          }}'
-          
-          echo "✅ 'admin' role created via RBAC patch"
+      
+      # - name: Force Create 'admin' Role in Project
+      #   run: |
+      #     echo "🔧 Forcing creation of 'admin' role in 'default' project..."
+      #     kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
+      #       '{"data":{"policy.csv":"p, proj:default:admin, applications, get, default/applications/*, allow"}}'
+      #     echo "✅ 'admin' role created via RBAC patch"
 
       - name: Restart ArgoCD Server to Apply Role Creation
         run: |
