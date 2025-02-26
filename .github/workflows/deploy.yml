@@ -702,12 +702,12 @@ jobs:
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
 
-      - name: Restart ArgoCD Server to Apply Authorization Changes
-        run: |
-          echo "🔄 Restarting ArgoCD to apply changes..."
-          kubectl rollout restart deployment argocd-server -n argocd
-          sleep 30
-          echo "✅ Restart complete"
+      # - name: Restart ArgoCD Server to Apply Authorization Changes
+      #   run: |
+      #     echo "🔄 Restarting ArgoCD to apply changes..."
+      #     kubectl rollout restart deployment argocd-server -n argocd
+      #     sleep 30
+      #     echo "✅ Restart complete"
 
       - name: Ensure 'demo-app' Ownership
         run: |
