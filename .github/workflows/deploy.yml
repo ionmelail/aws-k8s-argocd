@@ -575,6 +575,13 @@ jobs:
           argocd proj role add-policy default admin --action delete --object applications/* --permission allow
           echo "✅ Permissions updated"
 
+      - name: Assign Project-Level Access
+        run: |
+          echo "🔧 Assigning project-level access to 'admin' role..."
+          argocd proj allow-cluster-resource default "*" "*"
+          argocd proj allow-namespace-resource default "*" "*"
+          echo "✅ Project-level access granted"
+
       - name: Restart ArgoCD Server to Apply Permissions
         run: |
           echo "🔄 Restarting ArgoCD to apply new permissions..."
