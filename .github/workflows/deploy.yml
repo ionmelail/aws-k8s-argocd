@@ -607,6 +607,13 @@ jobs:
           echo "🔧 Forcing creation of 'admin' role in 'default' project..."
           kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
             '{"data":{"policy.csv":"p, proj:default:admin, applications, get, default/applications/*, allow"}}'
+
+          kubectl -n argocd patch secret argocd-secret \
+          -p '{"stringData": {
+            "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
+            "admin.passwordMtime": "'$(date +%FT%T%Z)'"
+          }}'
+          
           echo "✅ 'admin' role created via RBAC patch"
 
       - name: Restart ArgoCD Server to Apply Role Creation
