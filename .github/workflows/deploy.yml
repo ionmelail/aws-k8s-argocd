@@ -729,6 +729,18 @@ jobs:
           echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
           exit 1
 
+
+      - name: Restart Port-Forwarding If Connection Fails
+        run: |
+          echo "🔍 Verifying if port-forwarding is still active..."
+          if ! nc -z localhost 8085; then
+            echo "⚠️ Connection lost. Restarting port-forwarding..."
+            kill $(cat port_forward_pid) || true
+            kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+            sleep 5
+            echo "✅ Port-forwarding restarted"
+          fi
+
       - name: Ensure 'demo-app' Is Assigned to 'default' Project
         run: |
           echo "🔍 Checking if 'admin' owns 'demo-app'..."
