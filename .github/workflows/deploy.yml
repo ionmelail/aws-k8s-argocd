@@ -492,6 +492,8 @@ jobs:
           echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
           exit 1
 
+
+
       - name: Wait for ArgoCD LoadBalancer to be Reachable
         run: |
           echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
@@ -540,6 +542,11 @@ jobs:
           echo "❌ ERROR: LoadBalancer is not accepting connections."
           exit 1
 
+
+
+
+
+
       - name: Log into ArgoCD (Ignoring Certificate Errors)
         run: |
           echo "🔑 Attempting to log into ArgoCD..."
@@ -554,7 +561,48 @@ jobs:
           echo "❌ ERROR: ArgoCD login failed"
           exit 1
 
+      - name: Wait for ArgoCD Server to Be Ready
+        run: |
+          echo "🔄 Waiting for ArgoCD server to be ready..."
+          for i in {1..10}; do
+            if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
+              echo "✅ ArgoCD server is running!"
+              exit 0
+            fi
+            echo "⏳ ArgoCD server not ready yet. Retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ ERROR: ArgoCD server did not start in time."
+          exit 1
 
+      - name: Start Port-Forwarding for ArgoCD
+        run: |
+          echo "🔄 Starting port-forwarding to ArgoCD..."
+          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+          sleep 5
+          echo "✅ Port-forwarding started successfully"
+
+      - name: Ensure ArgoCD Server is Reachable
+        run: |
+          echo "🔍 Checking if ArgoCD is reachable..."
+          for i in {1..5}; do
+            if nc -z localhost 8085; then
+              echo "✅ ArgoCD is accessible on localhost:8085"
+              exit 0
+            fi
+            echo "⏳ Waiting for ArgoCD port-forward..."
+            sleep 5
+          done
+          echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
+
+
+
+      - name: Ensure ArgoCD CLI Recognizes 'admin'
+        run: |
+          echo "🔍 Checking ArgoCD account permissions..."
+          argocd account get --server=localhost:8085 || (echo "❌ 'admin' account missing, failing job" && exit 1)
+          echo "✅ ArgoCD account verified"
+          
 
       - name: Ensure 'default' Project Exists
         run: |
@@ -607,45 +655,6 @@ jobs:
           argocd proj allow-namespace-resource default "*" "*"
           echo "✅ Namespace and cluster-wide access granted"
 
-      - name: Wait for ArgoCD Server to Be Ready
-        run: |
-          echo "🔄 Waiting for ArgoCD server to be ready..."
-          for i in {1..10}; do
-            if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
-              echo "✅ ArgoCD server is running!"
-              exit 0
-            fi
-            echo "⏳ ArgoCD server not ready yet. Retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ ERROR: ArgoCD server did not start in time."
-          exit 1
-
-      - name: Start Port-Forwarding for ArgoCD
-        run: |
-          echo "🔄 Starting port-forwarding to ArgoCD..."
-          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
-          sleep 5
-          echo "✅ Port-forwarding started successfully"
-
-      - name: Ensure ArgoCD Server is Reachable
-        run: |
-          echo "🔍 Checking if ArgoCD is reachable..."
-          for i in {1..5}; do
-            if nc -z localhost 8085; then
-              echo "✅ ArgoCD is accessible on localhost:8085"
-              exit 0
-            fi
-            echo "⏳ Waiting for ArgoCD port-forward..."
-            sleep 5
-          done
-          echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
-
-      - name: Ensure ArgoCD CLI Recognizes 'admin'
-        run: |
-          echo "🔍 Checking ArgoCD account permissions..."
-          argocd account get --server=localhost:8085 || (echo "❌ 'admin' account missing, failing job" && exit 1)
-          echo "✅ ArgoCD account verified"
 
 
       
@@ -671,11 +680,19 @@ jobs:
           sleep 30
           echo "✅ Restart complete"
 
-      - name: Re-authenticate with ArgoCD After Restart
+      - name: Log into ArgoCD (Ignoring Certificate Errors)
         run: |
-          echo "🔑 Re-authenticating with ArgoCD..."
-          echo "password" | argocd login $ARGOCD_SERVER --username admin --password-stdin --insecure
-          echo "✅ Re-authenticated successfully"
+          echo "🔑 Attempting to log into ArgoCD..."
+          for i in {1..5}; do
+            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
+              echo "✅ Successfully logged into ArgoCD"
+              exit 0
+            fi
+            echo "⏳ Login failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: ArgoCD login failed"
+          exit 1
 
       - name: Ensure 'demo-app' Is Assigned to 'default' Project
         run: |
