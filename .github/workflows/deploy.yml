@@ -664,6 +664,11 @@ jobs:
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
 
+      - name: Ensure ArgoCD Service Account Has Full Access
+        run: |
+          echo "🔧 Granting cluster-admin access to ArgoCD..."
+          kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-server || true
+          echo "✅ ArgoCD service account has cluster-admin access"
 
           
       - name: Verify 'admin' Role Permissions
