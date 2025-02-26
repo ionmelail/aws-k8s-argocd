@@ -684,7 +684,7 @@ jobs:
 
       - name: Ensure ArgoCD Controller Has Full Cluster Access
         run: |
-          echo "🔧 Granting cluster-admin access to ArgoCD controller..."
+          echo "🔧 Granting cluster-admin access txo ArgoCD controller..."
           kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
           echo "✅ ArgoCD controller has cluster-admin access"
 		  
