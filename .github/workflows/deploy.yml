@@ -567,21 +567,22 @@ jobs:
       - name: Assign Full Sync Permissions to 'admin' Role
         run: |
           echo "🔧 Assigning full sync permissions to 'admin' role..."
-          argocd proj role add-policy default admin --action get --object applications, * --permission allow
-          argocd proj role add-policy default admin --action sync --object applications, * --permission allow
-          argocd proj role add-policy default admin --action update --object applications, * --permission allow
-          argocd proj role add-policy default admin --action override --object applications, * --permission allow
-          argocd proj role add-policy default admin --action create --object applications, * --permission allow
-          argocd proj role add-policy default admin --action delete --object applications, * --permission allow
+          argocd proj role add-policy default admin -a get -o applications/* -p allow
+          argocd proj role add-policy default admin -a sync -o applications/* -p allow
+          argocd proj role add-policy default admin -a update -o applications/* -p allow
+          argocd proj role add-policy default admin -a override -o applications/* -p allow
+          argocd proj role add-policy default admin -a create -o applications/* -p allow
+          argocd proj role add-policy default admin -a delete -o applications/* -p allow
           echo "✅ Permissions updated"
 
       - name: Ensure Project-Level Access for 'admin' Role
         run: |
           echo "🔧 Ensuring 'admin' role has project-level access..."
           argocd proj add-role default admin
-          argocd proj role add-policy default admin --action get --object projects/* --permission allow
-          argocd proj role add-policy default admin --action update --object projects/* --permission allow
+          argocd proj role add-policy default admin -a get -o projects/* -p allow
+          argocd proj role add-policy default admin -a update -o projects/* -p allow
           echo "✅ Project-level permissions granted"
+
 
       - name: Assign Namespace & Cluster-Level Access
         run: |
