@@ -592,6 +592,17 @@ jobs:
       #     fi
       #     echo "✅ 'admin' role exists in 'default' project"
 
+
+      - name: Ensure 'admin' Role Exists in Project
+        run: |
+          echo "🔧 Checking if 'admin' role exists in 'default' project..."
+          if ! argocd proj role list default | grep -q "admin"; then
+            echo "🔄 Creating 'admin' role in 'default' project..."
+            argocd proj role add-policy default admin -a get -o applications/* -p allow
+          fi
+          echo "✅ 'admin' role exists in 'default' project"
+
+
       - name: Assign Full Sync Permissions to 'admin' Role
         run: |
           echo "🔧 Assigning full sync permissions to 'admin' role..."
