@@ -580,6 +580,20 @@ jobs:
           sleep 30
           echo "✅ Restart complete"
 
+      - name: Re-authenticate with ArgoCD Before Sync
+        run: |
+          echo "🔑 Attempting to log into ArgoCD..."
+          for i in {1..5}; do
+            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
+              echo "✅ Successfully reath  into ArgoCD"
+              exit 0
+            fi
+            echo "⏳ Login failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: ArgoCD login failed"
+          exit 1
+
       - name: Sync ArgoCD Application
         run: |
           echo "🚀 Syncing demo-app with ArgoCD..."
@@ -594,7 +608,7 @@ jobs:
           sleep 5
 
           echo "🔑 Logging into ArgoCD via port-forward..."
-          argocd login localhost:8085 --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure
+          argocd login localhost:8085 --username admin --password "password" --insecure
           echo "✅ Successfully logged in using port-forwarding"
 
           echo "🚀 Syncing demo-app with ArgoCD via port-forward..."
