@@ -580,11 +580,6 @@ jobs:
           sleep 30
           echo "✅ Restart complete"
 
-      - name: Verify 'admin' Role Permissions
-        run: |
-          echo "🔍 Verifying 'admin' role permissions..."
-          argocd proj role get default admin
-
 
       - name: Re-authenticate with ArgoCD Before Sync
         run: |
@@ -599,6 +594,13 @@ jobs:
           done
           echo "❌ ERROR: ArgoCD login failed"
           exit 1
+
+          
+      - name: Verify 'admin' Role Permissions
+        run: |
+          echo "🔍 Verifying 'admin' role permissions..."
+          argocd proj role get default admin
+
 
       - name: Sync ArgoCD Application
         run: |
