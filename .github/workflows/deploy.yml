@@ -687,7 +687,7 @@ jobs:
       #     echo "🔧 Granting cluster-admin access to ArgoCD controller..."
       #     kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
       #     echo "✅ ArgoCD controller has cluster-admin access"
-		  
+      
       - name: Restart ArgoCD Server to Apply Authorization Changes
         run: |
           echo "🔄 Restarting ArgoCD to apply changes..."
