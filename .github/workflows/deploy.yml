@@ -567,10 +567,12 @@ jobs:
       - name: Assign Full Sync Permissions to 'admin' Role
         run: |
           echo "🔧 Assigning full sync permissions to 'admin' role..."
-          argocd proj role add-policy default admin --action get --object applications --permission allow
-          argocd proj role add-policy default admin --action sync --object applications --permission allow
-          argocd proj role add-policy default admin --action update --object applications --permission allow
-          argocd proj role add-policy default admin --action override --object applications --permission allow
+          argocd proj role add-policy default admin --action get --object applications/* --permission allow
+          argocd proj role add-policy default admin --action sync --object applications/* --permission allow
+          argocd proj role add-policy default admin --action update --object applications/* --permission allow
+          argocd proj role add-policy default admin --action override --object applications/* --permission allow
+          argocd proj role add-policy default admin --action create --object applications/* --permission allow
+          argocd proj role add-policy default admin --action delete --object applications/* --permission allow
           echo "✅ Permissions updated"
 
       - name: Restart ArgoCD Server to Apply Permissions
