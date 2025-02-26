@@ -682,11 +682,11 @@ jobs:
           argocd app set demo-app --project default --server=localhost:8085
           echo "✅ Ownership verified"
 
-      - name: Ensure ArgoCD Controller Has Full Cluster Access
-        run: |
-          echo "🔧 Granting cluster-admin access to ArgoCD controller..."
-          kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
-          echo "✅ ArgoCD controller has cluster-admin access"
+      # - name: Ensure ArgoCD Controller Has Full Cluster Access
+      #   run: |
+      #     echo "🔧 Granting cluster-admin access to ArgoCD controller..."
+      #     kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
+      #     echo "✅ ArgoCD controller has cluster-admin access"
 		  
       - name: Restart ArgoCD Server to Apply Authorization Changes
         run: |
