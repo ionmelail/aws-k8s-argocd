@@ -695,11 +695,11 @@ jobs:
           argocd account get --server=localhost:8085 || (echo "❌ 'admin' account missing, failing job" && exit 1)
           echo "✅ ArgoCD account verified"
 
-      - name: Assign Full Access to Applications
-        run: |
-          echo "🔧 Assigning global application access to 'admin' role..."
-          argocd proj role add-policy default admin -a get -o applications, * -p allow
-          echo "✅ Full application access granted"     
+      # - name: Assign Full Access to Applications
+      #   run: |
+      #     echo "🔧 Assigning global application access to 'admin' role..."
+      #     argocd proj role add-policy default admin -a get -o applications, * -p allow
+      #     echo "✅ Full application access granted"     
 
       - name: Ensure Global ArgoCD Authorization for 'admin'
         run: |
