@@ -544,7 +544,7 @@ jobs:
         run: |
           echo "🔑 Attempting to log into ArgoCD..."
           for i in {1..5}; do
-            if argocd login $ARGOCD_SERVER --username admin --password "${{ secrets.ARGOCD_PASSWORD }}" --insecure; then
+            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
               echo "✅ Successfully logged into ArgoCD"
               exit 0
             fi
