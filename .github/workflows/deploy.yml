@@ -564,21 +564,27 @@ jobs:
           fi
           echo "✅ 'admin' role exists in 'default' project"
 
-      - name: Ensure Admin Has Sync Permissions
+      - name: Assign Full Sync Permissions to 'admin' Role
         run: |
-          echo "🔧 Assigning sync permissions to 'admin' role..."
+          echo "🔧 Assigning full sync permissions to 'admin' role..."
           argocd proj role add-policy default admin --action get --object applications --permission allow
           argocd proj role add-policy default admin --action sync --object applications --permission allow
-          argocd proj role add-policy default admin --action create --object applications --permission allow
-          argocd proj role add-policy default admin --action delete --object applications --permission allow
+          argocd proj role add-policy default admin --action update --object applications --permission allow
+          argocd proj role add-policy default admin --action override --object applications --permission allow
           echo "✅ Permissions updated"
 
-      - name: Restart ArgoCD Server
+      - name: Restart ArgoCD Server to Apply Permissions
         run: |
-          echo "🔄 Restarting ArgoCD to apply permissions..."
+          echo "🔄 Restarting ArgoCD to apply new permissions..."
           kubectl rollout restart deployment argocd-server -n argocd
           sleep 30
           echo "✅ Restart complete"
+
+      - name: Verify 'admin' Role Permissions
+        run: |
+          echo "🔍 Verifying 'admin' role permissions..."
+          argocd proj role get default admin
+
 
       - name: Re-authenticate with ArgoCD Before Sync
         run: |
