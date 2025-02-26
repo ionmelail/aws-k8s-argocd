@@ -695,6 +695,12 @@ jobs:
           argocd account get --server=localhost:8085 || (echo "❌ 'admin' account missing, failing job" && exit 1)
           echo "✅ ArgoCD account verified"
 
+      - name: Assign Full Access to Applications
+        run: |
+          echo "🔧 Assigning global application access to 'admin' role..."
+          argocd proj role add-policy default admin -a get -o applications, * -p allow
+          echo "✅ Full application access granted"     
+
       - name: Ensure Global ArgoCD Authorization for 'admin'
         run: |
           echo "🔧 Ensuring 'admin' is globally authorized in ArgoCD..."
@@ -708,6 +714,18 @@ jobs:
       #     kubectl rollout restart deployment argocd-server -n argocd
       #     sleep 30
       #     echo "✅ Restart complete"
+
+      - name: Ensure 'demo-app' Is Assigned to 'default' Project
+        run: |
+          echo "🔍 Checking if 'admin' owns 'demo-app'..."
+          argocd app set demo-app --project default --server=localhost:8085
+          echo "✅ 'demo-app' ownership reassigned to 'default' project"
+
+      - name: Ensure ArgoCD Controller Has Full Cluster Access
+        run: |
+          echo "🔧 Granting cluster-admin access to ArgoCD controller..."
+          kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
+          echo "✅ ArgoCD controller has cluster-admin access"
 
       - name: Ensure 'demo-app' Ownership
         run: |
