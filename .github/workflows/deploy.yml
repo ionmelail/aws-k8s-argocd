@@ -35,9 +35,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: AWS ECR Login
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin "demo-app" }}
    
 
       #  Step 3: Set up Terraform for Infrastructure Provisioning
@@ -260,8 +257,15 @@ jobs:
 
       
   
-
-
+  
+      - name: AWS ECR Login
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin "demo-app" }}
+          kubectl create secret docker-registry ecr-secret \
+            --docker-server="demo-app" \
+            --docker-username=AWS \
+            --docker-password="$(aws ecr get-login-password --region us-west-2)" \
+            --docker-email=none
 
       # ✅ Step 11: Apply LoadBalancer for ArgoCD Server
       - name: Apply LoadBalancer to ArgoCD Server
