@@ -699,20 +699,16 @@ jobs:
           kubectl patch configmap argocd-cm -n argocd --type merge -p \
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
-
-      - name: Fix - Update ArgoCD RBAC ConfigMap
+          
+      - name: 🔧 Update ArgoCD RBAC settings
         run: |
           echo "🔧 Updating ArgoCD RBAC settings..."
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p "$(cat <<EOF
-          {
-            "data": {
-              "policy.csv": "p, role:admin, applications, get, demo-app, allow\n
-              p, role:admin, applications, update, demo-app, allow"
-            }
-          }
-          EOF
-          )"
-          echo "✅ ArgoCD RBAC updated successfully"
+      
+          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
+          '{"data": {"policy.csv": "g, my-group, role:admin\ng, dev-team, role:readonly"}}'
+      
+          echo "✅ ArgoCD RBAC settings updated successfully!"
+
 
           
       - name: Ensure ArgoCD Controller Has Full Cluster Access
