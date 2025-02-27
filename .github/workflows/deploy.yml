@@ -665,7 +665,6 @@ jobs:
           argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
-          argocd proj role add-policy default admin -a list -o applications/demo-app -p allow
   
        
 
