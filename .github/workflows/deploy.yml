@@ -690,6 +690,14 @@ jobs:
           kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
           echo "✅ ArgoCD controller has cluster-admin access"
 
+          
+          
+      - name: Ensure 'demo-app' Is Assigned to 'default' Project
+        run: |
+          echo "🔍 Checking if 'admin' owns 'demo-app'..."
+          argocd app set demo-app --project default --server=localhost:8085
+          echo "✅ 'demo-app' ownership reassigned to 'default' proj
+
 
       
       - name: Restart ArgoCD Server to Apply Authorization Changes
@@ -777,6 +785,18 @@ jobs:
           argocd proj role get default admin --server=localhost:8085 || (echo "❌ 'admin' role missing or has incorrect permissions!" && exit 1)
           echo "✅ 'admin' role permissions verified"
 
+          
+      - name: Debug - Check ArgoCD Logs for RBAC Issues
+        run: |
+          echo "🔍 Checking ArgoCD logs for RBAC rejections..."
+          kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server | grep "RBAC" || echo "✅ No RBAC rejections found"
+    
+      - name: Debug - List Applications to Check Ownership
+        run: |
+          echo "🔍 Listing ArgoCD applications..."
+          argocd app list --server=localhost:8085
+          echo "✅ ArgoCD applications listed"
+
       - name: Debug - Check If 'admin' Can Access 'demo-app'
         run: |
           echo "🔍 Checking if 'admin' can get 'demo-app'..."
@@ -786,23 +806,8 @@ jobs:
           fi
           echo "✅ 'admin' has access to 'demo-app'"
 
-      - name: Debug - List Applications to Check Ownership
-        run: |
-          echo "🔍 Listing ArgoCD applications..."
-          argocd app list --server=localhost:8085
-          echo "✅ ArgoCD applications listed"
 
-      - name: Debug - Check ArgoCD Logs for RBAC Issues
-        run: |
-          echo "🔍 Checking ArgoCD logs for RBAC rejections..."
-          kubectl logs -n argocd -l app.kubernetes.io/name=argocd-server | grep "RBAC" || echo "✅ No RBAC rejections found"
 
-          
-      - name: Ensure 'demo-app' Is Assigned to 'default' Project
-        run: |
-          echo "🔍 Checking if 'admin' owns 'demo-app'..."
-          argocd app set demo-app --project default --server=localhost:8085
-          echo "✅ 'demo-app' ownership reassigned to 'default' proj
 
       - name: Ensure 'demo-app' Ownership
         run: |
