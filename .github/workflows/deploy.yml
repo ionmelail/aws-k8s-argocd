@@ -777,13 +777,6 @@ jobs:
           argocd app set demo-app --project default --server=localhost:8085
           echo "✅ 'demo-app' ownership reassigned to 'default' proj
 
-
-      - name: Ensure 'demo-app' Is Assigned to 'default' Project
-        run: |
-          echo "🔍 Checking if 'admin' owns 'demo-app'..."
-          argocd app set demo-app --project default --server=localhost:8085
-          echo "✅ 'demo-app' ownership reassigned to 'default' project"
-
       - name: Ensure 'demo-app' Ownership
         run: |
           echo "🔍 Checking if 'admin' owns 'demo-app'..."
