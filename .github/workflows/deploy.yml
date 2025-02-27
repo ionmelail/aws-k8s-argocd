@@ -783,13 +783,15 @@ jobs:
             sleep 5
           fi
           echo "✅ Port-forwarding process is running"
-
-               # ✅ Reassign Ownership After Restart
-      - name: Ensure 'demo-app' Is Assigned to 'default' Project
+          
+      - name: Debug - Verify 'demo-app' Exists Before Assignment
         run: |
-          echo "🔍 Checking if 'admin' owns 'demo-app'..."
-          argocd app set demo-app --server=localhost:8085 --project default --upsert
-          echo "✅ 'demo-app' ownership reassigned to 'default' project"
+          echo "🔍 Checking if 'demo-app' exists..."
+          if ! argocd app get demo-app --server=localhost:8085; then
+            echo "❌ 'demo-app' does not exist or is inaccessible."
+            exit 1
+          fi
+          echo "✅ 'demo-app' exists and is accessible."
 
       - name: Debug - Verify 'admin' Role Permissions in ArgoCD
         run: |
