@@ -1,5 +1,5 @@
 ############################################
-# Demo App Namespace Configuration
+# Namespace Configuration for Demo App
 ############################################
 apiVersion: v1
 kind: Namespace
@@ -8,107 +8,52 @@ metadata:
 
 ---
 ############################################
-# ArgoCD Application for Deploying Demo App
-############################################
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: demo-app
-  namespace: argocd
-spec:
-  project: demo-project
-  source:
-    repoURL: "https://github.com/imelnic555/demo.git"
-    targetRevision: "main"
-    path: "k8s"  # Ensure Kubernetes manifests exist here
-  destination:
-    server: "https://kubernetes.default.svc"
-    namespace: "demo-app"
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-
----
-############################################
-# ArgoCD Project Configuration
-############################################
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: demo-project
-  namespace: argocd
-spec:
-  description: Demo Project for ArgoCD
-  sourceRepos:
-    - "https://github.com/imelnic555/demo.git"
-  destinations:
-    - namespace: "demo-app"
-      server: "https://kubernetes.default.svc"
-  clusterResourceWhitelist:
-    - group: ""
-      kind: "Namespace"
-    - group: "argoproj.io"
-      kind: "ApplicationSet" # ✅ Explicitly allow ApplicationSets
-  namespaceResourceWhitelist:
-    - group: ""
-      kind: "Deployment"
-    - group: ""
-      kind: "Service"
-    - group: ""
-      kind: "Ingress"
-
----
-############################################
-# ArgoCD Application for Deploying Demo App
-############################################
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: demo-app
-  namespace: argocd
-spec:
-  project: demo-project  # ✅ Ensuring project reference
-  source:
-    repoURL: "https://github.com/imelnic555/demo.git"
-    targetRevision: "main"
-    path: "k8s"  # Ensure Kubernetes manifests exist here
-  destination:
-    server: "https://kubernetes.default.svc"
-    namespace: "demo-app"
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
-
----
-############################################
-# ArgoCD Server Service Configuration
+# AWS ECR Secret for Pulling Images
 ############################################
 apiVersion: v1
-kind: Service
+kind: Secret
 metadata:
-  name: argocd-server
-  namespace: argocd
-spec:
-  selector:
-    app.kubernetes.io/name: argocd-server
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-    - name: https
-      port: 443
-      targetPort: 8080
-  type: LoadBalancer
+  name: aws-ecr-secret
+  namespace: demo-app
+  annotations:
+    kubernetes.io/service-account.name: default
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: REPLACE_WITH_ECR_CREDENTIALS_BASE64  # 🔄 Generate and replace this
 
 ---
 ############################################
-# Service Configuration for Demo App
+# Deployment for Demo App (Pulling Image from AWS ECR)
+############################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: demo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+        - name: demo-app
+          image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/demo-app:latest  # 🔄 Replace with actual ECR URL
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+      imagePullSecrets:
+        - name: aws-ecr-secret  # ✅ Ensures Kubernetes can pull from AWS ECR
+
+---
+############################################
+# Service to Expose Demo App
 ############################################
 apiVersion: v1
 kind: Service
