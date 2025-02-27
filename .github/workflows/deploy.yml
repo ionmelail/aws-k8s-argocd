@@ -35,6 +35,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
+      - name: AWS ECR Login
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin "demo-app" }}
+   
+
       #  Step 3: Set up Terraform for Infrastructure Provisioning
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
