@@ -784,6 +784,13 @@ jobs:
           fi
           echo "✅ Port-forwarding process is running"
 
+               # ✅ Reassign Ownership After Restart
+      - name: Ensure 'demo-app' Is Assigned to 'default' Project
+        run: |
+          echo "🔍 Checking if 'admin' owns 'demo-app'..."
+          argocd app set demo-app --server=localhost:8085 --project default --upsert
+          echo "✅ 'demo-app' ownership reassigned to 'default' project"
+
       - name: Debug - Verify 'admin' Role Permissions in ArgoCD
         run: |
           echo "🔍 Checking 'admin' role permissions in ArgoCD..."
