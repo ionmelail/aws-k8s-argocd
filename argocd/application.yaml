@@ -1,15 +1,15 @@
 ############################################
 # Demo App Namespace Configuration
 ############################################
-
 apiVersion: v1
 kind: Namespace
 metadata:
   name: demo-app
+
+---
 ############################################
 # ArgoCD Application for Deploying Demo App
 ############################################
-
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -31,7 +31,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
 
-
+---
 ############################################
 # ArgoCD Project Configuration
 ############################################
@@ -60,6 +60,7 @@ spec:
     - group: ""
       kind: "Ingress"
 
+---
 ############################################
 # ArgoCD Application for Deploying Demo App
 ############################################
@@ -84,6 +85,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
 
+---
 ############################################
 # ArgoCD Server Service Configuration
 ############################################
@@ -104,6 +106,7 @@ spec:
       targetPort: 8080
   type: LoadBalancer
 
+---
 ############################################
 # Service Configuration for Demo App
 ############################################
