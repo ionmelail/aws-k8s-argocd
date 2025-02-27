@@ -8,21 +8,6 @@ metadata:
 
 ---
 ############################################
-# AWS ECR Secret for Pulling Images
-############################################
-apiVersion: v1
-kind: Secret
-metadata:
-  name: aws-ecr-secret
-  namespace: demo-app
-  annotations:
-    kubernetes.io/service-account.name: default
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: REPLACE_WITH_ECR_CREDENTIALS_BASE64  # 🔄 Generate and replace this
-
----
-############################################
 # Deployment for Demo App (Pulling Image from AWS ECR)
 ############################################
 apiVersion: apps/v1
@@ -42,14 +27,14 @@ spec:
     spec:
       containers:
         - name: demo-app
-          image: 379620500929.dkr.ecr.us-west-2.amazonaws.com/demo-app:latest  # 🔄 Replace with actual ECR URL
+          image: AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com/demo-app:latest
           ports:
             - containerPort: 8080
           env:
             - name: ENVIRONMENT
               value: "production"
       imagePullSecrets:
-        - name: ecr-secret  # ✅ Ensures Kubernetes can pull from AWS ECR
+        - name: ecr-secret  # ✅ Secret dynamically created via CI/CD
 
 ---
 ############################################
