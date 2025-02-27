@@ -469,11 +469,15 @@ jobs:
           echo "🔄 Restarting AWS Load Balancer Controller..."
           kubectl rollout restart deployment aws-load-balancer-controller -n kube-system
           sleep 30  # Give it time to restart
-
+ 
+      
       - name: Apply ArgoCD Application
         run: |
           echo "🚀 Applying ArgoCD application..."
+          sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
+
           kubectl apply -f argocd/application.yaml
+
 
 
       - name: Get ArgoCD Server Hostname
