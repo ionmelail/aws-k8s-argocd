@@ -42,14 +42,14 @@ spec:
     spec:
       containers:
         - name: demo-app
-          image: <aws_account_id>.dkr.ecr.<region>.amazonaws.com/demo-app:latest  # 🔄 Replace with actual ECR URL
+          image: 379620500929.dkr.ecr.us-west-2.amazonaws.com/demo-app:latest  # 🔄 Replace with actual ECR URL
           ports:
             - containerPort: 8080
           env:
             - name: ENVIRONMENT
               value: "production"
       imagePullSecrets:
-        - name: aws-ecr-secret  # ✅ Ensures Kubernetes can pull from AWS ECR
+        - name: ecr-secret  # ✅ Ensures Kubernetes can pull from AWS ECR
 
 ---
 ############################################
