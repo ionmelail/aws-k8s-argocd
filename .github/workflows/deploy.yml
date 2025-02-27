@@ -688,13 +688,19 @@ jobs:
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
 
-      - name: Ensure ArgoCD RBAC Allows Full Access
+      - name: Update ArgoCD RBAC for Admin Role
         run: |
-          echo "🔧 Updating ArgoCD RBAC to allow 'admin' full application access..."
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
-            '{"data":{"policy.csv":"p, role:admin, applications, *, */*, allow"}}'
-          echo "✅ ArgoCD RBAC updated"  
-
+          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p '{
+            "data": {
+              "policy.csv": "p, role:admin, applications, *, */*, allow\n
+                             p, role:admin, applications, get, demo-app, allow\n
+                             p, role:admin, applications, update, demo-app, allow\n
+                             p, role:admin, applications, sync, demo-app, allow\n
+                             p, role:admin, projects, get, default, allow\n
+                             p, role:admin, projects, update, default, allow\n"
+            }
+          }'
+          
       - name: Ensure ArgoCD Controller Has Full Cluster Access
         run: |
           echo "🔧 Granting cluster-admin access to ArgoCD controller..."
@@ -783,15 +789,6 @@ jobs:
             sleep 5
           fi
           echo "✅ Port-forwarding process is running"
-          
-      - name: Debug - Verify 'demo-app' Exists Before Assignment
-        run: |
-          echo "🔍 Checking if 'demo-app' exists..."
-          if ! argocd app get demo-app --server=localhost:8085; then
-            echo "❌ 'demo-app' does not exist or is inaccessible."
-            exit 1
-          fi
-          echo "✅ 'demo-app' exists and is accessible."
 
       - name: Debug - Verify 'admin' Role Permissions in ArgoCD
         run: |
@@ -810,6 +807,17 @@ jobs:
           echo "🔍 Listing ArgoCD applications..."
           argocd app list --server=localhost:8085
           echo "✅ ArgoCD applications listed"
+          
+      - name: Debug - Verify 'demo-app' Exists Before Assignment
+        run: |
+          echo "🔍 Checking if 'demo-app' exists..."
+          if ! argocd app get demo-app --server=localhost:8085; then
+            echo "❌ 'demo-app' does not exist or is inaccessible."
+            exit 1
+          fi
+          echo "✅ 'demo-app' exists and is accessible."
+
+
 
       - name: Debug - Check If 'admin' Can Access 'demo-app'
         run: |
