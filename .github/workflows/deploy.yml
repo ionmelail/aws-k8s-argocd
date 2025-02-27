@@ -677,6 +677,13 @@ jobs:
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
 
+      - name: Ensure ArgoCD RBAC Allows Full Access
+        run: |
+          echo "🔧 Updating ArgoCD RBAC to allow 'admin' full application access..."
+          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
+            '{"data":{"policy.csv":"p, role:admin, applications, *, */*, allow"}}'
+          echo "✅ ArgoCD RBAC updated"  
+
       - name: Ensure ArgoCD Controller Has Full Cluster Access
         run: |
           echo "🔧 Granting cluster-admin access to ArgoCD controller..."
