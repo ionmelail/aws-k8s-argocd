@@ -254,18 +254,25 @@ jobs:
           fi
 
 
+      - name: Login to AWS ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
       
   
   
-      - name: AWS ECR Login
+      - name: Login to AWS ECR
         run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin "demo-app" }}
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      
           kubectl create secret docker-registry ecr-secret \
-            --docker-server="demo-app" \
+            --docker-server="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" \
             --docker-username=AWS \
-            --docker-password="$(aws ecr get-login-password --region us-west-2)" \
+            --docker-password="$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }})" \
             --docker-email=none
+
 
       # ✅ Step 11: Apply LoadBalancer for ArgoCD Server
       - name: Apply LoadBalancer to ArgoCD Server
