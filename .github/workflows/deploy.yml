@@ -659,6 +659,13 @@ jobs:
           argocd proj role add-policy default admin -a override -o projects/default -p allow
           echo "✅ Project-level permissions assigned"
 
+      - name: Assign Application-Level Access to 'admin' Role
+        run: |
+          echo "🔧 Assigning explicit permissions for 'admin' role on 'demo-app'..."
+          argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
+          argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
+          echo "✅ 'admin' role permissions for 'demo-app' updated"
+
 
       - name: Assign Namespace & Cluster-Level Access
         run: |
@@ -691,12 +698,6 @@ jobs:
           echo "✅ ArgoCD controller has cluster-admin access"
 
           
-          
-      - name: Ensure 'demo-app' Is Assigned to 'default' Project
-        run: |
-          echo "🔍 Checking if 'admin' owns 'demo-app'..."
-          argocd app set demo-app --project default --server=localhost:8085
-          echo "✅ 'demo-app' ownership reassigned to 'default' proj
 
 
       
@@ -806,6 +807,12 @@ jobs:
           fi
           echo "✅ 'admin' has access to 'demo-app'"
 
+          
+      - name: Ensure 'demo-app' Is Assigned to 'default' Project
+        run: |
+          echo "🔍 Checking if 'admin' owns 'demo-app'..."
+          argocd app set demo-app --project default --server=localhost:8085
+          echo "✅ 'demo-app' ownership reassigned to 'default' proj
 
 
 
