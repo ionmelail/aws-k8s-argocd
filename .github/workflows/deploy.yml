@@ -575,25 +575,25 @@ jobs:
           echo "❌ ERROR: ArgoCD server did not start in time."
           exit 1
 
-      # - name: Start Port-Forwarding for ArgoCD
-      #   run: |
-      #     echo "🔄 Starting port-forwarding to ArgoCD..."
-      #     kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
-      #     sleep 5
-      #     echo "✅ Port-forwarding started successfully"
+      - name: Start Port-Forwarding for ArgoCD
+        run: |
+          echo "🔄 Starting port-forwarding to ArgoCD..."
+          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+          sleep 5
+          echo "✅ Port-forwarding started successfully"
 
-      # - name: Ensure ArgoCD Server is Reachable
-      #   run: |
-      #     echo "🔍 Checking if ArgoCD is reachable..."
-      #     for i in {1..5}; do
-      #       if nc -z localhost 8085; then
-      #         echo "✅ ArgoCD is accessible on localhost:8085"
-      #         exit 0
-      #       fi
-      #       echo "⏳ Waiting for ArgoCD port-forward..."
-      #       sleep 5
-      #     done
-      #     echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
+      - name: Ensure ArgoCD Server is Reachable
+        run: |
+          echo "🔍 Checking if ArgoCD is reachable..."
+          for i in {1..5}; do
+            if nc -z localhost 8085; then
+              echo "✅ ArgoCD is accessible on localhost:8085"
+              exit 0
+            fi
+            echo "⏳ Waiting for ArgoCD port-forward..."
+            sleep 5
+          done
+          echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
 
 
 
@@ -711,7 +711,8 @@ jobs:
       - name: Start Port-Forwarding for ArgoCD
         run: |
           echo "🔄 Starting port-forwarding to ArgoCD..."
-          kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+          (kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 
+
           sleep 5
           echo "✅ Port-forwarding started successfully"
 
@@ -730,17 +731,16 @@ jobs:
           exit 1
 
 
-      - name: Restart Port-Forwarding If Connection Fails
+      - name: Verify Port-Forwarding is Still Active
         run: |
-          echo "🔍 Verifying if port-forwarding is still active..."
-          if ! nc -z localhost 8085; then
-            echo "⚠️ Connection lost. Restarting port-forwarding..."
-            kill $(cat port_forward_pid) || true
-            kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 & echo $! > port_forward_pid
+          echo "🔍 Checking if port-forwarding is still active..."
+          if ! ps -p $(cat port_forward_pid) > /dev/null; then
+            echo "⚠️ Port-forwarding process is missing. Restarting..."
+            kubectl port-forward svc/argocd-server -n argocd 8085:443 > port_forward.log 2>&1 & echo $! > port_forward_pid
             sleep 5
-            echo "✅ Port-forwarding restarted"
           fi
-
+          echo "✅ Port-forwarding process is running"
+          
       - name: Ensure 'demo-app' Is Assigned to 'default' Project
         run: |
           echo "🔍 Checking if 'admin' owns 'demo-app'..."
