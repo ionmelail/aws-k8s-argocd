@@ -806,6 +806,8 @@ jobs:
           argocd proj role get default admin --server=localhost:8085 || (echo "❌ 'admin' role missing or has incorrect permissions!" && exit 1)
           echo "✅ 'admin' role permissions verified"
 
+      - name: 🔍 Checking if 'demo-app' exists...
+        run: argocd app list
           
       - name: Debug - Check ArgoCD Logs for RBAC Issues
         run: |
