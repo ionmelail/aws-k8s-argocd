@@ -723,9 +723,12 @@ jobs:
       - name: Start Port-Forwarding for ArgoCD
         run: |
           echo "🔄 Starting port-forwarding to ArgoCD..."
-          (kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 
-
+          kubectl port-forward svc/argocd-server -n argocd 8085:443 > port_forward.log 2>&1 & echo $! > port_forward_pid
           sleep 5
+          if ! ps -p $(cat port_forward_pid) > /dev/null; then
+            echo "❌ Port-forwarding process failed to start"
+            exit 1
+          fi
           echo "✅ Port-forwarding started successfully"
 
       - name: Ensure ArgoCD Server is Reachable
