@@ -692,12 +692,12 @@ jobs:
         run: |
           kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p '{
             "data": {
-              "policy.csv": "p, role:admin, applications, *, */*, allow\n
-                             p, role:admin, applications, get, demo-app, allow\n
-                             p, role:admin, applications, update, demo-app, allow\n
-                             p, role:admin, applications, sync, demo-app, allow\n
-                             p, role:admin, projects, get, default, allow\n
-                             p, role:admin, projects, update, default, allow\n"
+              "policy.csv": "p, role:admin, applications, *, */*, allow
+                             p, role:admin, applications, get, demo-app, allow
+                             p, role:admin, applications, update, demo-app, allow
+                             p, role:admin, applications, sync, demo-app, allow
+                             p, role:admin, projects, get, default, allow
+                             p, role:admin, projects, update, default, allow
             }
           }'
           
