@@ -808,6 +808,20 @@ jobs:
 
       - name: 🔍 Checking if 'demo-app' exists...
         run: argocd app list
+
+              
+      - name: Recreate ArgoCD Application
+        run: |
+          echo "🚀 Recreating ArgoCD application..."
+          kubectl delete -f argocd/application.yaml --ignore-not-found
+          sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
+          kubectl apply -f argocd/application.yaml
+
+          kubectl apply -f argocd/application.yaml
+
+      - name: 🔍 Checking if 'demo-app' exists222..
+        run: argocd app list    
+
           
       - name: Debug - Check ArgoCD Logs for RBAC Issues
         run: |
