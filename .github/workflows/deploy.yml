@@ -688,18 +688,20 @@ jobs:
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
 
-      - name: Update ArgoCD RBAC for Admin Role
+      - name: Fix - Update ArgoCD RBAC ConfigMap
         run: |
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p '{
+          echo "🔧 Updating ArgoCD RBAC settings..."
+          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p "$(cat <<EOF
+          {
             "data": {
-              "policy.csv": "p, role:admin, applications, *, */*, allow
-                             p, role:admin, applications, get, demo-app, allow
-                             p, role:admin, applications, update, demo-app, allow
-                             p, role:admin, applications, sync, demo-app, allow
-                             p, role:admin, projects, get, default, allow
-                             p, role:admin, projects, update, default, allow
+              "policy.csv": "p, role:admin, applications, get, demo-app, allow\n
+              p, role:admin, applications, update, demo-app, allow"
             }
-          }'
+          }
+          EOF
+          )"
+          echo "✅ ArgoCD RBAC updated successfully"
+
           
       - name: Ensure ArgoCD Controller Has Full Cluster Access
         run: |
