@@ -16,7 +16,7 @@ jobs:
       SERVICE_ACCOUNT_NAME: aws-load-balancer-controller
     steps:
     
-      # 1️⃣ Checkout Repository Code1211
+      # 1️⃣ Checkout Repository Code12112
       - name: Checkout Code
         uses: actions/checkout@v3
  
