@@ -19,13 +19,6 @@ jobs:
       # 1️⃣ Checkout Repository Code1211
       - name: Checkout Code
         uses: actions/checkout@v3
-
-      # - name: Retrieve AWS Account ID
-      #   id: aws_account1
-      #   run: |1
-      #     ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-      #     echo "AWS_ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
-
  
       #  Step 2: Configure AWS Credentials using GitHub Secrets
       - name: Configure AWS Credentials
@@ -34,8 +27,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
-
-   
+  
 
       #  Step 3: Set up Terraform for Infrastructure Provisioning
       - name: Set up Terraform
@@ -78,7 +70,7 @@ jobs:
         run: |
           kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-       # 10. Install ArgoCD in the 'argocd' namespace
+       # 10. Wait ArgoCD in the 'argocd' namespace
       - name: Wait for ArgoCD Pods to be Ready
         run: |
           echo "Waiting for all ArgoCD pods to be ready..."
@@ -91,7 +83,7 @@ jobs:
           done
           echo "All ArgoCD pods are running!"
 
-      # 11. Install ArgoCD in the 'argocd' namespace
+      # 11. Wait ArgoCD in the 'argocd' namespace
       - name: Wait for All ArgoCD Pods to be Ready
         run: |
           echo "Waiting for all ArgoCD pods to be ready..."
