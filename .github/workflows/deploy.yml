@@ -478,7 +478,10 @@ jobs:
           done
           echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
 
-
+      - name: Log into ArgoCD via Port-Forward
+        run: |
+          echo "🔐 Logging into ArgoCD via port-forward (localhost:8085)..."
+          argocd login localhost:8085 --username admin --password "password" --insecure
       
       - name: Ensure ArgoCD CLI Recognizes 'admin'
         run: |
