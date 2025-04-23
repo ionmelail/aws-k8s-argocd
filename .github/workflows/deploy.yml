@@ -532,17 +532,57 @@ jobs:
       - name: Patch ArgoCD Service to ClusterIP
         run: ./scripts/04-patch-argocd-service.sh
 
-      # 9️⃣ Update Ingress YAML with External IP of NGINX1
+
+      # 9️⃣ Update Ingress YAML with External IP of NGINX
       - name: Update Ingress YAML with External IP
         run: |
-          EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
-          if [[ -n "$EXTERNAL_IP" ]]; then
-            echo "Updating argocd-server-ingress.yaml with External IP: $EXTERNAL_IP"
-            sed -i "s|<EXTERNAL_IP>|$EXTERNAL_IP|g" argocd/argocd-server-ingress.yaml
-          else
-            echo "❌ ERROR: External IP not found for NGINX Ingress Controller"
+          # Retry until the external IP is available (up to 5 retries)
+          for i in {1..5}; do
+            EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
+            if [[ -n "$EXTERNAL_IP" ]]; then
+              echo "✅ Ingress Controller External IP: $EXTERNAL_IP"
+              sed -i "s|<EXTERNAL_IP>|$EXTERNAL_IP|g" argocd/argocd-server-ingress.yaml
+              break
+            else
+              echo "⏳ Waiting for external IP... retry $i"
+              sleep 30  # Wait for 30 seconds before retrying
+            fi
+          done
+
+          if [[ -z "$EXTERNAL_IP" ]]; then
+            echo "❌ Failed to get external IP for ingress controller"
             exit 1
           fi
+
+  
+      - name: Log into ArgoCD (Ignoring Certificate Errors)
+        run: |
+          echo "🔑 Attempting to log into ArgoCD..."
+          for i in {1..5}; do
+            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
+              echo "✅ Successfully logged into ArgoCD"
+              exit 0
+            fi
+            echo "⏳ Login failed. Retrying in 20s..."
+            sleep 20
+          done
+          echo "❌ ERROR: ArgoCD login failed"
+          exit 1
+  
+      - name: Wait for ArgoCD Server to Be Ready
+        run: |
+          echo "🔄 Waiting for ArgoCD server to be ready..."
+          for i in {1..10}; do
+            if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
+              echo "✅ ArgoCD server is running!"
+              exit 0
+            fi
+            echo "⏳ ArgoCD server not ready yet. Retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ ERROR: ArgoCD server did not start in time."
+          exit 1
+
       
       - name: Apply ArgoCD Ingress
         run: ./scripts/05-apply-argocd-ingress.sh
@@ -567,33 +607,33 @@ jobs:
       
 
 
-      - name: Log into ArgoCD (Ignoring Certificate Errors)
-        run: |
-          echo "🔑 Attempting to log into ArgoCD..."
-          for i in {1..5}; do
-            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
-              echo "✅ Successfully logged into ArgoCD"
-              exit 0
-            fi
-            echo "⏳ Login failed. Retrying in 20s..."
-            sleep 20
-          done
-          echo "❌ ERROR: ArgoCD login failed"
-          exit 1
+      # - name: Log into ArgoCD (Ignoring Certificate Errors)
+      #   run: |
+      #     echo "🔑 Attempting to log into ArgoCD..."
+      #     for i in {1..5}; do
+      #       if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
+      #         echo "✅ Successfully logged into ArgoCD"
+      #         exit 0
+      #       fi
+      #       echo "⏳ Login failed. Retrying in 20s..."
+      #       sleep 20
+      #     done
+      #     echo "❌ ERROR: ArgoCD login failed"
+      #     exit 1
 
-      - name: Wait for ArgoCD Server to Be Ready
-        run: |
-          echo "🔄 Waiting for ArgoCD server to be ready..."
-          for i in {1..10}; do
-            if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
-              echo "✅ ArgoCD server is running!"
-              exit 0
-            fi
-            echo "⏳ ArgoCD server not ready yet. Retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ ERROR: ArgoCD server did not start in time."
-          exit 1
+      # - name: Wait for ArgoCD Server to Be Ready
+      #   run: |
+      #     echo "🔄 Waiting for ArgoCD server to be ready..."
+      #     for i in {1..10}; do
+      #       if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
+      #         echo "✅ ArgoCD server is running!"
+      #         exit 0
+      #       fi
+      #       echo "⏳ ArgoCD server not ready yet. Retrying in 10s..."
+      #       sleep 10
+      #     done
+      #     echo "❌ ERROR: ArgoCD server did not start in time."
+      #     exit 1
 
       # - name: Start Port-Forwarding for ArgoCD
       #   run: |
