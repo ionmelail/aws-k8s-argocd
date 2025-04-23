@@ -9,7 +9,7 @@ ECR_REPO_NAME="demo-app"
 DOCKER_IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest"
 GITHUB_USERNAME="imelnic555"
 GITHUB_TOKEN="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"
-GITHUB_REPO="https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/imelnic555/demo.git"
+GITHUB_REPO="https://${GITHUB_USERNAME}::${{ secrets.GH_PATD }}@github.com/imelnic555/demo.git"
 CLONE_DIR="demo-app"
 
 ############################################
