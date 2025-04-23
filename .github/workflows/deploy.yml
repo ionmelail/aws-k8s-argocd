@@ -531,6 +531,18 @@ jobs:
       
       - name: Patch ArgoCD Service to ClusterIP
         run: ./scripts/04-patch-argocd-service.sh
+
+      # 9️⃣ Update Ingress YAML with External IP of NGINX1
+      - name: Update Ingress YAML with External IP
+        run: |
+          EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
+          if [[ -n "$EXTERNAL_IP" ]]; then
+            echo "Updating argocd-server-ingress.yaml with External IP: $EXTERNAL_IP"
+            sed -i "s|<EXTERNAL_IP>|$EXTERNAL_IP|g" argocd/argocd-server-ingress.yaml
+          else
+            echo "❌ ERROR: External IP not found for NGINX Ingress Controller"
+            exit 1
+          fi
       
       - name: Apply ArgoCD Ingress
         run: ./scripts/05-apply-argocd-ingress.sh
