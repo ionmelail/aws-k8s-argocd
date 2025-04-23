@@ -479,13 +479,13 @@ jobs:
           echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
 
 
-
+      
       - name: Ensure ArgoCD CLI Recognizes 'admin'
         run: |
           echo "🔍 Checking ArgoCD account permissions..."
-          argocd account get --server=localhost:8085 || (echo "❌ 'admin' account missing, failing job" && exit 1)
+          argocd account get --server=localhost:8085 --insecure || (echo "❌ 'admin' account missing or not reachable, failing job" && exit 1)
           echo "✅ ArgoCD account verified"
-          
+                
 
       - name: Ensure 'default' Project Exists
         run: |
