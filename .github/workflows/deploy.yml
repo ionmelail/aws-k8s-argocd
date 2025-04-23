@@ -442,286 +442,6 @@ jobs:
       #     argocd login "$ARGOCD_SERVER" --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
       #     echo "✅ Successfully logged into ArgoCD."
 
-      
-      - name: Wait for AWS Load Balancer Webhook Service
-        run: |
-          echo "⏳ Waiting for aws-load-balancer-webhook-service to become ready..."
-          for i in {1..30}; do
-            if kubectl get endpoints aws-load-balancer-webhook-service -n kube-system | grep -q "addresses"; then
-              echo "✅ Webhook service is ready!"
-              exit 0
-            fi
-            echo "⏳ Still waiting... retrying in 10s"
-            sleep 10
-          done
-          echo "❌ ERROR: Webhook service not ready in time"
-          exit 1
-
-        
-      - name: Make NGINX Ingress Script Executable
-        run: chmod +x scripts/03-install-nginx-ingress.sh
-      
-      - name: Make ArgoCD ClusterIP Patch Script Executable
-        run: chmod +x scripts/04-patch-argocd-service.sh
-      
-      - name: Make ArgoCD Ingress Script Executable
-        run: chmod +x scripts/05-apply-argocd-ingress.sh
-      
-      # Now safe to run all of them:
-      - name: Install NGINX Ingress Controller
-        run: ./scripts/03-install-nginx-ingress.sh
-      
-      - name: Patch ArgoCD Service to ClusterIP
-        run: ./scripts/04-patch-argocd-service.sh
-      
-      - name: Apply ArgoCD Ingress
-        run: ./scripts/05-apply-argocd-ingress.sh
-            
-  # # Step 12: Attach IAM Policy to EKS Node Role
-  #     - name: Attach IAM Policy to EKS Node Role
-  #       run: |
-  #         echo "🔍 Attaching IAM policy to EKS Node Role..."
-  #         NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
-  #         POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
-
-  #         # Ensure policy exists before attaching
-  #         if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
-  #           echo "❌ ERROR: IAM Policy does not exist!"
-  #           exit 1
-  #         fi
-
-  #         # Check if policy is already attached
-  #         if aws iam list-attached-role-policies --role-name "$NODE_ROLE" --query "AttachedPolicies[?PolicyArn=='$POLICY_ARN']" --output text | grep -q "$POLICY_ARN"; then
-  #           echo "✅ IAM Policy is already attached to $NODE_ROLE."
-  #         else
-  #           echo "🔄 Attaching IAM Policy to $NODE_ROLE..."
-  #           aws iam attach-role-policy --policy-arn "$POLICY_ARN" --role-name "$NODE_ROLE"
-  #           echo "✅ IAM Policy successfully attached to role: $NODE_ROLE"
-  #         fi
-      
-  #     # 🔹 Step 4: Install AWS Load Balancer Controller (AFTER Policy is Attached)
-  #     - name: Install AWS Load Balancer Controller
-  #       run: |
-  #         echo "Checking AWS Load Balancer Controller in cluster..."
-  #         if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
-  #           echo "🚀 Installing AWS Load Balancer Controller..."
-  #           eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
-  #           helm repo add eks https://aws.github.io/eks-charts
-  #           helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-  #             --set clusterName=my-cluster \
-  #             --set serviceAccount.create=true \
-  #             --set region=us-west-2 \
-  #             --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
-  #             -n kube-system
-  #         else
-  #           echo "✅ AWS Load Balancer Controller is already installed."
-  #         fi
-
-  
-      - name: Login to AWS ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
-          docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-      
-          kubectl create secret docker-registry ecr-secret \
-            --docker-server="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" \
-            --docker-username=AWS \
-            --docker-password="$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }})" \
-            --docker-email=none
-
-
-      # ✅ Step 11: Apply LoadBalancer for ArgoCD Server
-      - name: Apply LoadBalancer to ArgoCD Server
-        run: |
-          echo "Applying LoadBalancer to ArgoCD server..."
-          kubectl apply -f argocd/argocd-server-loadbalancer.yaml
-          echo "✅ LoadBalancer configuration applied!"
-
-      # ✅ Step 12: Ensure argocd-redis Secret Exists BEFORE ArgoCD Restarts
-      - name: Ensure ArgoCD Redis Secret Exists
-        run: |
-          if ! kubectl get secret argocd-redis -n argocd; then
-            kubectl create secret generic argocd-redis -n argocd --from-literal=password=$(openssl rand -base64 32)
-          fi
-
-
-
-      # # 1️⃣1️⃣ Check ArgoCD Services and Pods
-      # - name: Check ArgoCD pods and services
-      #   run: |
-      #     kubectl get pods -n argocd
-      #     kubectl get svc -n argocd
-
-      # 1️⃣2️⃣ Ensure 'demo-app' Namespace Exists
-      - name: Ensure demo-app Namespace Exists
-        run: |
-          if ! kubectl get namespace demo-app; then
-            echo "Creating demo-app namespace..."
-            kubectl create namespace demo-app
-          else
-            echo "Namespace demo-app already exists."
-          fi
-
-   
-      # # 1️⃣5️⃣ Check all namespces 
-      # - name: Check all namespces
-      #   run: |
-      #    kubectl get applications --all-namespaces
-      #    kubectl get secret --all-namespaces | grep argocd-initial-admin-secret
-
-
-      # 1️⃣6️⃣ Restart ArgoCD Pods if Needed
-      - name: Restart ArgoCD Pods if Needed
-        run: |
-          kubectl -n argocd patch secret argocd-secret \
-          -p '{"stringData": {
-            "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
-            "admin.passwordMtime": "'$(date +%FT%T%Z)'"
-          }}'
-          if [[ $(kubectl get pods -n argocd | grep -c "Running") -lt 5 ]]; then
-            kubectl delete pod -n argocd --all
-          fi
-
-           # 5.1. Install ArgoCD in the 'argocd' namespace
-      - name: Wait for ArgoCD Pods to be Ready
-        run: |
-          echo "Waiting for all ArgoCD pods to be ready..."
-          while [[ $(kubectl get pods -n argocd --no-headers | grep -c -v "Running") -ne 0 ]]; do
-            echo "Some pods are still not ready..."
-            kubectl get pods -n argocd
-            sleep 10
-          done
-          echo "All ArgoCD pods are running!"
-
-      # 5.2. Install ArgoCD in the 'argocd' namespace
-      - name: Wait for All ArgoCD Pods to be Ready
-        run: |
-          echo "Waiting for all ArgoCD pods to be ready..."
-          for i in {1..30}; do
-            READY_PODS=$(kubectl get pods -n argocd --no-headers | awk '{print $2}' | grep -c "1/1")
-            TOTAL_PODS=$(kubectl get pods -n argocd --no-headers | wc -l)
-      
-            if [[ "$READY_PODS" -eq "$TOTAL_PODS" ]]; then
-              echo "✅ All ArgoCD pods are ready!"
-              exit 0
-            fi
-      
-            echo "⏳ Waiting... $READY_PODS/$TOTAL_PODS pods are ready."
-            sleep 10
-          done
-    
-          echo "❌ Error: ArgoCD pods failed to reach 1/1 READY state."
-
-
-
-      # # ✅ Step 16: Wait for ArgoCD Server LoadBalancer IP (Retries)
-      # - name: Wait for ArgoCD Server LoadBalancer
-      #   run: |
-      #     echo "Waiting for ArgoCD server LoadBalancer IP..."
-      #     for i in {1..30}; do
-      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-      #       if [[ -n "$ARGOCD_SERVER" ]]; then
-      #         echo "✅ ArgoCD Server Ready: $ARGOCD_SERVER"
-      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-      #         exit 0
-      #       fi
-      #       echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
-      #       sleep 10
-      #     done
-      #     echo "❌ ERROR: ArgoCD server LoadBalancer IP not found. Check Kubernetes events."
-
-      - name: Wait for NGINX Ingress External IP
-        run: |
-          echo "Waiting for NGINX ingress external IP..."
-          for i in {1..30}; do
-            INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
-            if [[ -n "$INGRESS_IP" ]]; then
-              echo "✅ NGINX Ingress is ready: $INGRESS_IP"
-              echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
-              exit 0
-            fi
-            echo "⏳ Ingress IP not available yet. Retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ ERROR: NGINX Ingress external IP not available."
-          exit 1
-
-
-          
-      #     kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
-      #     exit 1
-
-      # - name: Check DNS Resolution
-      #   run: |
-      #     nslookup $ARGOCD_SERVER || (echo "❌ ERROR: DNS resolution failed." && exit 1)
-
-      - name: Wait for ArgoCD Readiness
-        run: |
-          kubectl rollout status deployment/argocd-server -n argocd --timeout=120s || \
-          (echo "❌ ERROR: ArgoCD deployment is not ready" && exit 1)
-
-      # - name: Log into ArgoCD
-      #   run: |
-      #     argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
-      #     echo "✅ Successfully logged into ArgoCD"
-
-      # - name: Port Forward as Fallback
-      #   if: failure()
-      #   run: |
-      #     echo "⚠️ Using port-forwarding as a fallback..."
-      #     kubectl port-forward svc/argocd-server -n argocd 8080:443 & sleep 5
-      #     argocd login localhost:8080 --username admin --password "password" --insecure
-      #     # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
-      #     echo "⚠️ Using port-forwarding as a fallback..."
-      #     # echo ARGOCD_ADMIN_PASSWORD
-
-          
-      # # ✅ de aicic in jos Step 14: Get ArgoCD Server Address (with Wait Loop)
-      # - name: Get ArgoCD Server Address
-      #   run: |
-      #     echo "Waiting for ArgoCD server address..."
-      #     for i in {1..30}; do
-      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-      #       if [[ -n "$ARGOCD_SERVER" ]]; then
-      #         echo "✅ ArgoCD Server Address: $ARGOCD_SERVER"
-      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-      #         exit 0
-      #       fi
-      #       echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
-      #       sleep 10
-      #     done
-      #     echo "❌ ERROR: ArgoCD server address not found after waiting."
-      #     exit 1
-
-
-      # # 1️⃣8️⃣ Retrieve ArgoCD Admin Password
-      # - name: Get ArgoCD Admin Password
-      #   run: |
-      #     echo "update ArgoCD admin password..."
-      #     kubectl -n argocd patch secret argocd-secret \
-      #     -p '{"stringData": {
-      #       "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
-      #       "admin.passwordMtime": "'$(date +%FT%T%Z)'"
-      #     }}'
-      #     echo "Retrieving ArgoCD admin password..."
-                                 
-
-      #     # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
-      #     ARGOCD_ADMIN_PASSWORD='password'
-      #     if [[ -z "$ARGOCD_ADMIN_PASSWORD" ]]; then
-      #       echo "❌ ERROR: Unable to retrieve ArgoCD admin password."
-      #       exit 1
-      #     fi
-      #     echo "::add-mask::$ARGOCD_ADMIN_PASSWORD"
-      #     echo "ARGOCD_ADMIN_PASSWORD=$ARGOCD_ADMIN_PASSWORD" >> $GITHUB_ENV
-
-      # # 1️⃣9️⃣ Log in to ArgoCD
-      # - name: Login to ArgoCD
-      #   run: |
-      #     echo "Logging into ArgoCD..."
-      #     argocd login "$ARGOCD_SERVER" --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
-      #     echo "✅ Successfully logged into ArgoCD."
-
       - name: Ensure AWS Load Balancer Webhook is Running
         run: |
           echo "🔄 Checking AWS Load Balancer Webhook status..."
@@ -743,137 +463,96 @@ jobs:
           sleep 30  # Give it time to restart
  
       
-      # - name: Apply ArgoCD Application 
-      #   run: |
-      #     echo "🚀 Applying ArgoCD application..."
-      #     sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
-
-      #     kubectl apply -f argocd/application.yaml
-
-      # ✅ Make patch script executable
-      - name: Make ArgoCD Ingress Patch Script Executable
-        run: chmod +x scripts/08-patch-argocd-ingress.sh
-      
-      # ✅ Make app script executable
-      - name: Make ArgoCD Application Script Executable
-        run: chmod +x scripts/07-apply-argocd-app.sh
-      
-      # 1️⃣ Apply base Ingress (placeholder host)
-      - name: Apply ArgoCD Ingress
-        run: ./scripts/05-apply-argocd-ingress.sh
-      
-      # 2️⃣ Wait until external IP from NGINX LoadBalancer is available
-      - name: Wait for NGINX Ingress External IP
-        run: ./scripts/06-wait-nginx-ip.sh
-      
-      # 3️⃣ Patch the placeholder host with a real DNS like `argocd.1.2.3.4.nip.io`
-      - name: Patch ArgoCD Ingress with Real Host
-        run: ./scripts/08-patch-argocd-ingress.sh
-      
-      # 4️⃣ Finally, create the ArgoCD Application
-      - name: Apply ArgoCD Application
-        run: ./scripts/07-apply-argocd-app.sh ${{ secrets.AWS_ACCOUNT_ID }}
-
-
-
-      # - name: Get ArgoCD Server Hostname
-      #   run: |
-      #     echo "🔄 Waiting for ArgoCD LoadBalancer hostname..."
-      #     for i in {1..10}; do
-      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-      #       if [[ -n "$ARGOCD_SERVER" ]]; then
-      #         echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
-      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-      #         exit 0
-      #       fi
-      #       echo "⏳ LoadBalancer hostname not available yet. Retrying in 30s..."
-      #       sleep 30
-      #     done
-      #     echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
-      #     exit 1
-
-      - name: Get NGINX Ingress External IP for ArgoCD
+      - name: Apply ArgoCD Application 
         run: |
-          echo "🔍 Fetching Ingress IP for ArgoCD..."
+          echo "🚀 Applying ArgoCD application..."
+          sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
+
+          kubectl apply -f argocd/application.yaml
+
+
+
+      - name: Get ArgoCD Server Hostname
+        run: |
+          echo "🔄 Waiting for ArgoCD LoadBalancer hostname..."
           for i in {1..10}; do
-            INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
-            if [[ -n "$INGRESS_IP" ]]; then
-              echo "✅ Found NGINX Ingress IP: $INGRESS_IP"
-              echo "ARGOCD_NIP_URL=http://argocd.${INGRESS_IP}.nip.io" >> $GITHUB_ENV
+            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+            if [[ -n "$ARGOCD_SERVER" ]]; then
+              echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
+              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
               exit 0
             fi
-            echo "⏳ Ingress IP not available. Retrying in 10s..."
-            sleep 10
+            echo "⏳ LoadBalancer hostname not available yet. Retrying in 30s..."
+            sleep 30
           done
-      
-          echo "❌ ERROR: Ingress IP not assigned."
+          echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
           exit 1
 
-      # - name: Wait for ArgoCD LoadBalancer Provisioning
-      #   run: |
-      #     echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
-      #     for i in {1..10}; do
-      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-      #       if [[ -n "$ARGOCD_SERVER" ]]; then
-      #         echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
-      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-      #         exit 0
-      #       fi
-      #       echo "⏳ LoadBalancer not ready yet. Retrying in 30s..."
-      #       sleep 30
-      #     done
-      #     echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
-      #     exit 1
+      - name: Wait for ArgoCD LoadBalancer Provisioning
+        run: |
+          echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
+          for i in {1..10}; do
+            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+            if [[ -n "$ARGOCD_SERVER" ]]; then
+              echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
+              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+              exit 0
+            fi
+            echo "⏳ LoadBalancer not ready yet. Retrying in 30s..."
+            sleep 30
+          done
+          echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
+          exit 1
 
 
 
-      # - name: Wait for ArgoCD LoadBalancer to be Reachable
-      #   run: |
-      #     echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
-      #     for i in {1..10}; do
-      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-      #       if [[ -n "$ARGOCD_SERVER" ]]; then
-      #         echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
-      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-      #         break
-      #       fi
-      #       echo "⏳ LoadBalancer not ready yet. Retrying in 30s..."
-      #       sleep 30
-      #     done
+      - name: Wait for ArgoCD LoadBalancer to be Reachable
+        run: |
+          echo "🔄 Checking if ArgoCD LoadBalancer is ready..."
+          for i in {1..10}; do
+            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+            if [[ -n "$ARGOCD_SERVER" ]]; then
+              echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
+              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+              break
+            fi
+            echo "⏳ LoadBalancer not ready yet. Retrying in 30s..."
+            sleep 30
+          done
 
-      #     if [[ -z "$ARGOCD_SERVER" ]]; then
-      #       echo "❌ ERROR: LoadBalancer hostname not assigned."
-      #       exit 1
-      #     fi
+          if [[ -z "$ARGOCD_SERVER" ]]; then
+            echo "❌ ERROR: LoadBalancer hostname not assigned."
+            exit 1
+          fi
 
-      # - name: Wait for DNS Resolution
-      #   run: |
-      #     echo "🔍 Waiting for DNS resolution..."
-      #     for i in {1..10}; do
-      #       if nslookup $ARGOCD_SERVER; then
-      #         echo "✅ DNS resolved successfully!"
-      #         exit 0
-      #       fi
-      #       echo "⏳ DNS not resolved yet. Retrying in 30s..."
-      #       sleep 30
-      #     done
+      - name: Wait for DNS Resolution
+        run: |
+          echo "🔍 Waiting for DNS resolution..."
+          for i in {1..10}; do
+            if nslookup $ARGOCD_SERVER; then
+              echo "✅ DNS resolved successfully!"
+              exit 0
+            fi
+            echo "⏳ DNS not resolved yet. Retrying in 30s..."
+            sleep 30
+          done
 
-      #     echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
-      #     exit 1
+          echo "❌ ERROR: DNS resolution failed for $ARGOCD_SERVER"
+          exit 1
 
-      # - name: Wait for LoadBalancer to Accept Connections
-      #   run: |
-      #     echo "🔄 Waiting for ArgoCD LoadBalancer to accept connections..."
-      #     for i in {1..10}; do
-      #       if curl -k --connect-timeout 5 https://$ARGOCD_SERVER; then
-      #         echo "✅ LoadBalancer is accepting connections!"
-      #         exit 0
-      #       fi
-      #       echo "⏳ LoadBalancer not accepting connections yet. Retrying in 30s..."
-      #       sleep 30
-      #     done
-      #     echo "❌ ERROR: LoadBalancer is not accepting connections."
-      #     exit 1
+      - name: Wait for LoadBalancer to Accept Connections
+        run: |
+          echo "🔄 Waiting for ArgoCD LoadBalancer to accept connections..."
+          for i in {1..10}; do
+            if curl -k --connect-timeout 5 https://$ARGOCD_SERVER; then
+              echo "✅ LoadBalancer is accepting connections!"
+              exit 0
+            fi
+            echo "⏳ LoadBalancer not accepting connections yet. Retrying in 30s..."
+            sleep 30
+          done
+          echo "❌ ERROR: LoadBalancer is not accepting connections."
+          exit 1
 
 
 
