@@ -110,14 +110,14 @@ jobs:
     
           echo "❌ Error: ArgoCD pods failed to reach 1/1 READY state."
 
-      # ✅ Install eksctl (Required for Load Balancer Controller)
-      - name: Install eksctl
-        run: |
-          echo "Installing eksctl..."
-          curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-          sudo mv /tmp/eksctl /usr/local/bin
-          eksctl version
-          echo "✅ eksctl installed successfully!"
+      # # ✅ Install eksctl (Required for Load Balancer Controller)
+      # - name: Install eksctl
+      #   run: |
+      #     echo "Installing eksctl..."
+      #     curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+      #     sudo mv /tmp/eksctl /usr/local/bin
+      #     eksctl version
+      #     echo "✅ eksctl installed successfully!"
 
 
 
