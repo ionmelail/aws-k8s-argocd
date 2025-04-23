@@ -213,45 +213,45 @@ jobs:
             echo "✅ AWS Load Balancer Controller is already installed."
           fi
       
-  # Step 12: Attach IAM Policy to EKS Node Role
-      - name: Attach IAM Policy to EKS Node Role
-        run: |
-          echo "🔍 Attaching IAM policy to EKS Node Role..."
-          NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
-          POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
+  # # Step 12: Attach IAM Policy to EKS Node Role
+  #     - name: Attach IAM Policy to EKS Node Role
+  #       run: |
+  #         echo "🔍 Attaching IAM policy to EKS Node Role..."
+  #         NODE_ROLE=$(aws eks describe-cluster --name ${{ env.CLUSTER_NAME }} --query "cluster.roleArn" --output text | awk -F '/' '{print $2}')
+  #         POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
 
-          # Ensure policy exists before attaching
-          if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
-            echo "❌ ERROR: IAM Policy does not exist!"
-            exit 1
-          fi
+  #         # Ensure policy exists before attaching
+  #         if ! aws iam get-policy --policy-arn "$POLICY_ARN" > /dev/null 2>&1; then
+  #           echo "❌ ERROR: IAM Policy does not exist!"
+  #           exit 1
+  #         fi
 
-          # Check if policy is already attached
-          if aws iam list-attached-role-policies --role-name "$NODE_ROLE" --query "AttachedPolicies[?PolicyArn=='$POLICY_ARN']" --output text | grep -q "$POLICY_ARN"; then
-            echo "✅ IAM Policy is already attached to $NODE_ROLE."
-          else
-            echo "🔄 Attaching IAM Policy to $NODE_ROLE..."
-            aws iam attach-role-policy --policy-arn "$POLICY_ARN" --role-name "$NODE_ROLE"
-            echo "✅ IAM Policy successfully attached to role: $NODE_ROLE"
-          fi
+  #         # Check if policy is already attached
+  #         if aws iam list-attached-role-policies --role-name "$NODE_ROLE" --query "AttachedPolicies[?PolicyArn=='$POLICY_ARN']" --output text | grep -q "$POLICY_ARN"; then
+  #           echo "✅ IAM Policy is already attached to $NODE_ROLE."
+  #         else
+  #           echo "🔄 Attaching IAM Policy to $NODE_ROLE..."
+  #           aws iam attach-role-policy --policy-arn "$POLICY_ARN" --role-name "$NODE_ROLE"
+  #           echo "✅ IAM Policy successfully attached to role: $NODE_ROLE"
+  #         fi
       
-      # 🔹 Step 4: Install AWS Load Balancer Controller (AFTER Policy is Attached)
-      - name: Install AWS Load Balancer Controller
-        run: |
-          echo "Checking AWS Load Balancer Controller in cluster..."
-          if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
-            echo "🚀 Installing AWS Load Balancer Controller..."
-            eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
-            helm repo add eks https://aws.github.io/eks-charts
-            helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
-              --set clusterName=my-cluster \
-              --set serviceAccount.create=true \
-              --set region=us-west-2 \
-              --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
-              -n kube-system
-          else
-            echo "✅ AWS Load Balancer Controller is already installed."
-          fi
+      # # 🔹 Step 4: Install AWS Load Balancer Controller (AFTER Policy is Attached)
+      # - name: Install AWS Load Balancer Controller
+      #   run: |
+      #     echo "Checking AWS Load Balancer Controller in cluster..."
+      #     if ! kubectl get deployment -n kube-system aws-load-balancer-controller > /dev/null 2>&1; then
+      #       echo "🚀 Installing AWS Load Balancer Controller..."
+      #       eksctl utils associate-iam-oidc-provider --region us-west-2 --cluster my-cluster --approve
+      #       helm repo add eks https://aws.github.io/eks-charts
+      #       helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+      #         --set clusterName=my-cluster \
+      #         --set serviceAccount.create=true \
+      #         --set region=us-west-2 \
+      #         --set vpcId=$(aws ec2 describe-vpcs --query "Vpcs[0].VpcId" --output text --region us-west-2) \
+      #         -n kube-system
+      #     else
+      #       echo "✅ AWS Load Balancer Controller is already installed."
+      #     fi
 
   
       - name: Login to AWS ECR
@@ -395,52 +395,8 @@ jobs:
           echo "⚠️ Using port-forwarding as a fallback..."
           # echo ARGOCD_ADMIN_PASSWORD
 
-          
-      # # ✅ de aicic in jos Step 14: Get ArgoCD Server Address (with Wait Loop)
-      # - name: Get ArgoCD Server Address
-      #   run: |
-      #     echo "Waiting for ArgoCD server address..."
-      #     for i in {1..30}; do
-      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-      #       if [[ -n "$ARGOCD_SERVER" ]]; then
-      #         echo "✅ ArgoCD Server Address: $ARGOCD_SERVER"
-      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-      #         exit 0
-      #       fi
-      #       echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
-      #       sleep 10
-      #     done
-      #     echo "❌ ERROR: ArgoCD server address not found after waiting."
-      #     exit 1
 
 
-      # # 1️⃣8️⃣ Retrieve ArgoCD Admin Password
-      # - name: Get ArgoCD Admin Password
-      #   run: |
-      #     echo "update ArgoCD admin password..."
-      #     kubectl -n argocd patch secret argocd-secret \
-      #     -p '{"stringData": {
-      #       "admin.password": "$2a$10$rRyBsGSHK6.uc8fntPwVIuLVHgsAhAX7TcdrqW/RADU0uh7CaChLa",
-      #       "admin.passwordMtime": "'$(date +%FT%T%Z)'"
-      #     }}'
-      #     echo "Retrieving ArgoCD admin password..."
-                                 
-
-      #     # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
-      #     ARGOCD_ADMIN_PASSWORD='password'
-      #     if [[ -z "$ARGOCD_ADMIN_PASSWORD" ]]; then
-      #       echo "❌ ERROR: Unable to retrieve ArgoCD admin password."
-      #       exit 1
-      #     fi
-      #     echo "::add-mask::$ARGOCD_ADMIN_PASSWORD"
-      #     echo "ARGOCD_ADMIN_PASSWORD=$ARGOCD_ADMIN_PASSWORD" >> $GITHUB_ENV
-
-      # # 1️⃣9️⃣ Log in to ArgoCD
-      # - name: Login to ArgoCD
-      #   run: |
-      #     echo "Logging into ArgoCD..."
-      #     argocd login "$ARGOCD_SERVER" --username admin --password "$ARGOCD_ADMIN_PASSWORD" --insecure
-      #     echo "✅ Successfully logged into ArgoCD."
 
       - name: Ensure AWS Load Balancer Webhook is Running
         run: |
