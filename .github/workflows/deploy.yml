@@ -403,25 +403,10 @@ jobs:
         run: ./scripts/05-apply-argocd-ingress.sh
 
 
-      # Step 11: Log into ArgoCD (Ignoring Certificate Errors)
-      - name: Log into ArgoCD (Ignoring Certificate Errors)
-        run: |
-          echo "🔑 Attempting to log into ArgoCD..."
-          for i in {1..5}; do
-            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
-              echo "✅ Successfully logged into ArgoCD"
-              exit 0
-            fi
-            echo "⏳ Login failed. Retrying in 20s..."
-            sleep 20
-          done
-          echo "❌ ERROR: ArgoCD login failed"
-          exit 1
-
-      # Step 12: Wait for ArgoCD Server to Be Ready
+    # Step 1: Wait for ArgoCD Server to Be Ready
       - name: Wait for ArgoCD Server to Be Ready
         run: |
-          echo "🔄 Waiting for ArgoCD server to be ready..."
+          echo "🔄 Waiting for ArgoCD server pod to be ready..."
           for i in {1..10}; do
             if kubectl get pods -n argocd | grep -q "argocd-server.*Running"; then
               echo "✅ ArgoCD server is running!"
@@ -432,6 +417,40 @@ jobs:
           done
           echo "❌ ERROR: ArgoCD server did not start in time."
           exit 1
+      
+          # Step 2: Log into ArgoCD (with auto-detect fallback)
+          - name: Log into ArgoCD (auto-detect server)
+            run: |
+              echo "🔍 Detecting ArgoCD server address..."
+          
+              HOSTNAME=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].hostname}" 2>/dev/null || echo "")
+              IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
+              ARGOCD_SERVER="${HOSTNAME:-$IP}"
+          
+              if [[ -z "$ARGOCD_SERVER" ]]; then
+                echo "⚠️ Could not detect external IP or hostname. Using port-forwarding fallback..."
+                nohup kubectl port-forward svc/argocd-server -n argocd 8085:443 > /dev/null 2>&1 &
+                sleep 5
+                ARGOCD_SERVER="localhost:8085"
+              fi
+          
+              echo "✅ Logging into ArgoCD at: $ARGOCD_SERVER"
+              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+          
+              for i in {1..5}; do
+                if argocd login "$ARGOCD_SERVER" --username admin --password "password" --insecure; then
+                  echo "✅ Successfully logged into ArgoCD"
+                  exit 0
+                fi
+                echo "⏳ Login failed. Retrying in 20s..."
+                sleep 20
+              done
+          
+              echo "❌ ERROR: ArgoCD login failed"
+              exit 1
+      
+
+
           
     
       - name: Start Port-Forwarding for ArgoCD
