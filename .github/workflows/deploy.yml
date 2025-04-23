@@ -210,6 +210,21 @@ jobs:
       
       - name: Install AWS Load Balancer Controller
         run: ./scripts/02-install-aws-lb-controller.sh
+      
+      - name: Wait for AWS Load Balancer Webhook Service
+        run: |
+          echo "⏳ Waiting for aws-load-balancer-webhook-service to become ready..."
+          for i in {1..30}; do
+            if kubectl get endpoints aws-load-balancer-webhook-service -n kube-system | grep -q "addresses"; then
+              echo "✅ Webhook service is ready!"
+              exit 0
+            fi
+            echo "⏳ Still waiting... retrying in 10s"
+            sleep 10
+          done
+          echo "❌ ERROR: Webhook service not ready in time"
+          exit 1
+
         
       - name: Make NGINX Ingress Script Executable
         run: chmod +x scripts/03-install-nginx-ingress.sh
@@ -503,17 +518,30 @@ jobs:
 
       #     kubectl apply -f argocd/application.yaml
 
-      - name: Make ArgoCD Application Script Executable
-        run: chmod +x scripts/07-apply-argocd-app.sh
-      
-      - name: Apply ArgoCD Application
-        run: ./scripts/07-apply-argocd-app.sh ${{ secrets.AWS_ACCOUNT_ID }}
-
+      # ✅ Make patch script executable
       - name: Make ArgoCD Ingress Patch Script Executable
         run: chmod +x scripts/08-patch-argocd-ingress.sh
       
+      # ✅ Make app script executable
+      - name: Make ArgoCD Application Script Executable
+        run: chmod +x scripts/07-apply-argocd-app.sh
+      
+      # 1️⃣ Apply base Ingress (placeholder host)
+      - name: Apply ArgoCD Ingress
+        run: ./scripts/05-apply-argocd-ingress.sh
+      
+      # 2️⃣ Wait until external IP from NGINX LoadBalancer is available
+      - name: Wait for NGINX Ingress External IP
+        run: ./scripts/06-wait-nginx-ip.sh
+      
+      # 3️⃣ Patch the placeholder host with a real DNS like `argocd.1.2.3.4.nip.io`
       - name: Patch ArgoCD Ingress with Real Host
         run: ./scripts/08-patch-argocd-ingress.sh
+      
+      # 4️⃣ Finally, create the ArgoCD Application
+      - name: Apply ArgoCD Application
+        run: ./scripts/07-apply-argocd-app.sh ${{ secrets.AWS_ACCOUNT_ID }}
+
 
 
       # - name: Get ArgoCD Server Hostname
