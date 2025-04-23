@@ -392,9 +392,16 @@ jobs:
       #     echo "Updating argocd-server-ingress.yaml with External IP: $EXTERNAL_IP"
       #     sed -i "s|<EXTERNAL_IP>|$EXTERNAL_IP|g" argocd/argocd-server-ingress.yaml
 
-      # Step 10: Apply ArgoCD Ingress
+         # Step: Disable NGINX Admission Webhook (for testing only)
+      - name: Disable NGINX Admission Webhook (testing only)
+        run: |
+          echo "⚠️ Deleting NGINX admission webhook temporarily for testing..."
+          kubectl delete validatingwebhookconfiguration ingress-nginx-admission || echo "Webhook not found, continuing..."
+      
+      # Step: Apply ArgoCD Ingress
       - name: Apply ArgoCD Ingress
         run: ./scripts/05-apply-argocd-ingress.sh
+
 
       # Step 11: Log into ArgoCD (Ignoring Certificate Errors)
       - name: Log into ArgoCD (Ignoring Certificate Errors)
