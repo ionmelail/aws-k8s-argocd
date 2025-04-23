@@ -205,21 +205,31 @@ jobs:
       #       echo "✅ AWS Load Balancer Controller is already installed."
       #     fi
 
+      - name: Make AWS LB Controller Script Executable
+        run: chmod +x scripts/02-install-aws-lb-controller.sh
+      
       - name: Install AWS Load Balancer Controller
         run: ./scripts/02-install-aws-lb-controller.sh
-
-      # 3️⃣ Install NGINX Ingress Controller
+        
+      - name: Make NGINX Ingress Script Executable
+        run: chmod +x scripts/03-install-nginx-ingress.sh
+      
+      - name: Make ArgoCD ClusterIP Patch Script Executable
+        run: chmod +x scripts/04-patch-argocd-service.sh
+      
+      - name: Make ArgoCD Ingress Script Executable
+        run: chmod +x scripts/05-apply-argocd-ingress.sh
+      
+      # Now safe to run all of them:
       - name: Install NGINX Ingress Controller
         run: ./scripts/03-install-nginx-ingress.sh
-
-      # 4️⃣ Patch ArgoCD Service to ClusterIP
-      - name: Patch ArgoCD Service
+      
+      - name: Patch ArgoCD Service to ClusterIP
         run: ./scripts/04-patch-argocd-service.sh
-
-      # 5️⃣ Apply Ingress for ArgoCD
+      
       - name: Apply ArgoCD Ingress
         run: ./scripts/05-apply-argocd-ingress.sh
-      
+            
   # # Step 12: Attach IAM Policy to EKS Node Role
   #     - name: Attach IAM Policy to EKS Node Role
   #       run: |
@@ -493,8 +503,17 @@ jobs:
 
       #     kubectl apply -f argocd/application.yaml
 
+      - name: Make ArgoCD Application Script Executable
+        run: chmod +x scripts/07-apply-argocd-app.sh
+      
       - name: Apply ArgoCD Application
         run: ./scripts/07-apply-argocd-app.sh ${{ secrets.AWS_ACCOUNT_ID }}
+
+      - name: Make ArgoCD Ingress Patch Script Executable
+        run: chmod +x scripts/08-patch-argocd-ingress.sh
+      
+      - name: Patch ArgoCD Ingress with Real Host
+        run: ./scripts/08-patch-argocd-ingress.sh
 
 
       # - name: Get ArgoCD Server Hostname
