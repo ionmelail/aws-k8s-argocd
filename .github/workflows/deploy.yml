@@ -210,6 +210,15 @@ jobs:
       
       - name: Install AWS Load Balancer Controller
         run: ./scripts/02-install-aws-lb-controller.sh
+
+      - name: Debug Print Load Balancer Controller Logs
+        run: kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller --tail=100
+
+      - name: Wait for AWS Load Balancer Controller Deployment
+        run: |
+          echo "⏳ Waiting for aws-load-balancer-controller deployment..."
+          kubectl rollout status deployment aws-load-balancer-controller -n kube-system --timeout=180s
+
       
       - name: Wait for AWS Load Balancer Webhook Service
         run: |
