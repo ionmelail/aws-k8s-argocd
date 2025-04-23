@@ -3,7 +3,7 @@ name: Deploy EKS & ArgoCD
 on:
   push:
     branches:
-      - argo
+      - nodejs_debug
 
 jobs:
   deploy:
