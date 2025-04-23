@@ -266,19 +266,19 @@ jobs:
             --docker-email=none
 
 
-      # ✅ Step 11: Apply LoadBalancer for ArgoCD Server
-      - name: Apply LoadBalancer to ArgoCD Server
-        run: |
-          echo "Applying LoadBalancer to ArgoCD server..."
-          kubectl apply -f argocd/argocd-server-loadbalancer.yaml
-          echo "✅ LoadBalancer configuration applied!"
+      # # ✅ Step 11: Apply LoadBalancer for ArgoCD Server
+      # - name: Apply LoadBalancer to ArgoCD Server
+      #   run: |
+      #     echo "Applying LoadBalancer to ArgoCD server..."
+      #     kubectl apply -f argocd/argocd-server-loadbalancer.yaml
+      #     echo "✅ LoadBalancer configuration applied!"
 
-      # ✅ Step 12: Ensure argocd-redis Secret Exists BEFORE ArgoCD Restarts
-      - name: Ensure ArgoCD Redis Secret Exists
-        run: |
-          if ! kubectl get secret argocd-redis -n argocd; then
-            kubectl create secret generic argocd-redis -n argocd --from-literal=password=$(openssl rand -base64 32)
-          fi
+      # # ✅ Step 12: Ensure argocd-redis Secret Exists BEFORE ArgoCD Restarts
+      # - name: Ensure ArgoCD Redis Secret Exists
+      #   run: |
+      #     if ! kubectl get secret argocd-redis -n argocd; then
+      #       kubectl create secret generic argocd-redis -n argocd --from-literal=password=$(openssl rand -base64 32)
+      #     fi
 
 
 
@@ -350,26 +350,26 @@ jobs:
 
 
 
-      # ✅ Step 16: Wait for ArgoCD Server LoadBalancer IP (Retries)
-      - name: Wait for ArgoCD Server LoadBalancer
-        run: |
-          echo "Waiting for ArgoCD server LoadBalancer IP..."
-          for i in {1..30}; do
-            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [[ -n "$ARGOCD_SERVER" ]]; then
-              echo "✅ ArgoCD Server Ready: $ARGOCD_SERVER"
-              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
-              exit 0
-            fi
-            echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
-            sleep 10
-          done
-          echo "❌ ERROR: ArgoCD server LoadBalancer IP not found. Check Kubernetes events."
+      # # ✅ Step 16: Wait for ArgoCD Server LoadBalancer IP (Retries)
+      # - name: Wait for ArgoCD Server LoadBalancer
+      #   run: |
+      #     echo "Waiting for ArgoCD server LoadBalancer IP..."
+      #     for i in {1..30}; do
+      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      #       if [[ -n "$ARGOCD_SERVER" ]]; then
+      #         echo "✅ ArgoCD Server Ready: $ARGOCD_SERVER"
+      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+      #         exit 0
+      #       fi
+      #       echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
+      #       sleep 10
+      #     done
+      #     echo "❌ ERROR: ArgoCD server LoadBalancer IP not found. Check Kubernetes events."
 
 
           
-          kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
-          exit 1
+          # kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
+          # exit 1
 
       # - name: Check DNS Resolution
       #   run: |
