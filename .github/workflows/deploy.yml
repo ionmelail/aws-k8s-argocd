@@ -297,11 +297,11 @@ jobs:
 
 
 
-      # 1️⃣1️⃣ Check ArgoCD Services and Pods
-      - name: Check ArgoCD pods and services
-        run: |
-          kubectl get pods -n argocd
-          kubectl get svc -n argocd
+      # # 1️⃣1️⃣ Check ArgoCD Services and Pods
+      # - name: Check ArgoCD pods and services
+      #   run: |
+      #     kubectl get pods -n argocd
+      #     kubectl get svc -n argocd
 
       # 1️⃣2️⃣ Ensure 'demo-app' Namespace Exists
       - name: Ensure demo-app Namespace Exists
@@ -365,26 +365,42 @@ jobs:
 
 
 
-      # ✅ Step 16: Wait for ArgoCD Server LoadBalancer IP (Retries)
-      - name: Wait for ArgoCD Server LoadBalancer
+      # # ✅ Step 16: Wait for ArgoCD Server LoadBalancer IP (Retries)
+      # - name: Wait for ArgoCD Server LoadBalancer
+      #   run: |
+      #     echo "Waiting for ArgoCD server LoadBalancer IP..."
+      #     for i in {1..30}; do
+      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+      #       if [[ -n "$ARGOCD_SERVER" ]]; then
+      #         echo "✅ ArgoCD Server Ready: $ARGOCD_SERVER"
+      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+      #         exit 0
+      #       fi
+      #       echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
+      #       sleep 10
+      #     done
+      #     echo "❌ ERROR: ArgoCD server LoadBalancer IP not found. Check Kubernetes events."
+
+      - name: Wait for NGINX Ingress External IP
         run: |
-          echo "Waiting for ArgoCD server LoadBalancer IP..."
+          echo "Waiting for NGINX ingress external IP..."
           for i in {1..30}; do
-            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [[ -n "$ARGOCD_SERVER" ]]; then
-              echo "✅ ArgoCD Server Ready: $ARGOCD_SERVER"
-              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+            INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+            if [[ -n "$INGRESS_IP" ]]; then
+              echo "✅ NGINX Ingress is ready: $INGRESS_IP"
+              echo "INGRESS_IP=$INGRESS_IP" >> $GITHUB_ENV
               exit 0
             fi
-            echo "⏳ ArgoCD server address not available yet. Retrying in 10s..."
+            echo "⏳ Ingress IP not available yet. Retrying in 10s..."
             sleep 10
           done
-          echo "❌ ERROR: ArgoCD server LoadBalancer IP not found. Check Kubernetes events."
+          echo "❌ ERROR: NGINX Ingress external IP not available."
+          exit 1
 
 
           
-          kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
-          exit 1
+      #     kubectl get events -n argocd --sort-by=.metadata.creationTimestamp
+      #     exit 1
 
       # - name: Check DNS Resolution
       #   run: |
@@ -400,15 +416,15 @@ jobs:
       #     argocd login $ARGOCD_SERVER --username admin --password "password" --insecure
       #     echo "✅ Successfully logged into ArgoCD"
 
-      - name: Port Forward as Fallback
-        if: failure()
-        run: |
-          echo "⚠️ Using port-forwarding as a fallback..."
-          kubectl port-forward svc/argocd-server -n argocd 8080:443 & sleep 5
-          argocd login localhost:8080 --username admin --password "password" --insecure
-          # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
-          echo "⚠️ Using port-forwarding as a fallback..."
-          # echo ARGOCD_ADMIN_PASSWORD
+      # - name: Port Forward as Fallback
+      #   if: failure()
+      #   run: |
+      #     echo "⚠️ Using port-forwarding as a fallback..."
+      #     kubectl port-forward svc/argocd-server -n argocd 8080:443 & sleep 5
+      #     argocd login localhost:8080 --username admin --password "password" --insecure
+      #     # ARGOCD_ADMIN_PASSWORD=$(kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 --decode)
+      #     echo "⚠️ Using port-forwarding as a fallback..."
+      #     # echo ARGOCD_ADMIN_PASSWORD
 
           
       # # ✅ de aicic in jos Step 14: Get ArgoCD Server Address (with Wait Loop)
@@ -478,29 +494,48 @@ jobs:
           sleep 30  # Give it time to restart
  
       
-      - name: Apply ArgoCD Application 
+      # - name: Apply ArgoCD Application 
+      #   run: |
+      #     echo "🚀 Applying ArgoCD application..."
+      #     sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
+
+      #     kubectl apply -f argocd/application.yaml
+
+      - name: Apply ArgoCD Application
+        run: ./scripts/07-apply-argocd-app.sh ${{ secrets.AWS_ACCOUNT_ID }}
+
+
+      # - name: Get ArgoCD Server Hostname
+      #   run: |
+      #     echo "🔄 Waiting for ArgoCD LoadBalancer hostname..."
+      #     for i in {1..10}; do
+      #       ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
+      #       if [[ -n "$ARGOCD_SERVER" ]]; then
+      #         echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
+      #         echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+      #         exit 0
+      #       fi
+      #       echo "⏳ LoadBalancer hostname not available yet. Retrying in 30s..."
+      #       sleep 30
+      #     done
+      #     echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
+      #     exit 1
+
+      - name: Get NGINX Ingress External IP for ArgoCD
         run: |
-          echo "🚀 Applying ArgoCD application..."
-          sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
-
-          kubectl apply -f argocd/application.yaml
-
-
-
-      - name: Get ArgoCD Server Hostname
-        run: |
-          echo "🔄 Waiting for ArgoCD LoadBalancer hostname..."
+          echo "🔍 Fetching Ingress IP for ArgoCD..."
           for i in {1..10}; do
-            ARGOCD_SERVER=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "")
-            if [[ -n "$ARGOCD_SERVER" ]]; then
-              echo "✅ ArgoCD LoadBalancer: $ARGOCD_SERVER"
-              echo "ARGOCD_SERVER=$ARGOCD_SERVER" >> $GITHUB_ENV
+            INGRESS_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+            if [[ -n "$INGRESS_IP" ]]; then
+              echo "✅ Found NGINX Ingress IP: $INGRESS_IP"
+              echo "ARGOCD_NIP_URL=http://argocd.${INGRESS_IP}.nip.io" >> $GITHUB_ENV
               exit 0
             fi
-            echo "⏳ LoadBalancer hostname not available yet. Retrying in 30s..."
-            sleep 30
+            echo "⏳ Ingress IP not available. Retrying in 10s..."
+            sleep 10
           done
-          echo "❌ ERROR: ArgoCD LoadBalancer hostname not assigned."
+      
+          echo "❌ ERROR: Ingress IP not assigned."
           exit 1
 
       - name: Wait for ArgoCD LoadBalancer Provisioning
