@@ -500,39 +500,33 @@ jobs:
           echo "✅ 'default' project exists"
 
       
-      - name: 🔐 Full RBAC Reset and 'admin' Role Configuration
+      - name: 🔐 Force RBAC Reset (Hard Clean of 'admin' Role for demo-app)
         run: |
-          echo "🔥 Removing legacy RBAC config (argocd-rbac-cm)..."
+          echo "🔥 Deleting legacy RBAC config if still present..."
           kubectl delete configmap argocd-rbac-cm -n argocd || true
       
-          echo "💥 Resetting 'admin' role in 'default' project..."
+          echo "💥 Force deleting and recreating 'admin' role in project 'default'..."
           argocd proj role delete default admin || true
           argocd proj role create default admin
       
-          echo "✅ Assigning valid wildcard application policies..."
-          argocd proj role add-policy default admin -a get -o applications/* -p allow
-          argocd proj role add-policy default admin -a sync -o applications/* -p allow
-          argocd proj role add-policy default admin -a update -o applications/* -p allow
-          argocd proj role add-policy default admin -a create -o applications/* -p allow
-          argocd proj role add-policy default admin -a delete -o applications/* -p allow
-      
-          echo "✅ Assigning explicit permissions for 'demo-app'..."
+          echo "✅ Applying application-specific policies for 'demo-app'..."
           argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
-          argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
+          argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
       
-          echo "✅ Assigning project-level permissions..."
+          echo "✅ Adding project-level access..."
           argocd proj role add-policy default admin -a get -o projects/default -p allow
           argocd proj role add-policy default admin -a update -o projects/default -p allow
       
-          echo "✅ Assigning cluster and namespace resource access..."
+          echo "✅ Granting cluster-wide and namespace-wide access..."
           argocd proj allow-cluster-resource default "*" "*"
           argocd proj allow-namespace-resource default "*" "*"
       
           echo "🔧 Setting 'admin' as the default role for all users..."
           kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"policy.default":"role:admin"}}'
       
-          echo "✅ RBAC configuration and default role mapping completed successfully."
+          echo "✅ RBAC configuration and role mapping for 'demo-app' completed successfully."
+      
   
     
     
