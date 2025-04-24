@@ -637,7 +637,7 @@ jobs:
           echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
           exit 1
 
-           name: Log into ArgoCD (Ignoring Certificate Errors)
+          - name: Log into ArgoCD (Ignoring Certificate Errors1)
             run: |
               echo "🔑 Attempting to log into ArgoCD..."
               for i in {1..5}; do
