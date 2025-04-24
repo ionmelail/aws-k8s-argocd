@@ -499,7 +499,6 @@ jobs:
           fi
           echo "✅ 'default' project exists"
 
-      
       - name: 🔐 Force RBAC Reset (Hard Clean of 'admin' Role for demo-app)
         run: |
           echo "🔥 Deleting legacy RBAC config if still present..."
@@ -527,8 +526,16 @@ jobs:
       
           echo "✅ RBAC configuration and role mapping for 'demo-app' completed successfully."
       
-  
-    
+          echo "🌐 Attempting to print ArgoCD external URL..."
+          ARGOCD_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          if [ -z "$ARGOCD_URL" ]; then
+            echo "⚠️ ArgoCD LoadBalancer not ready yet or not exposed. You may need to use port-forward later."
+          else
+            echo "🔗 ArgoCD Web UI is available at: https://$ARGOCD_URL"
+          fi
+      
+        
+          
     
    
       
