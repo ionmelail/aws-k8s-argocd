@@ -512,6 +512,14 @@ jobs:
         run: |
           echo "🔧 Reassigning correct RBAC permissions to 'admin' role..."
       
+      - name: 🔐 Configure RBAC Permissions for 'admin' Role in ArgoCD
+        run: |
+          echo "🔧 Reassigning correct RBAC permissions to 'admin' role..."
+      
+          # OPTIONAL: Reset the role if re-running in CI for clean state
+          argocd proj role delete default admin || true
+          argocd proj role create default admin
+      
           # ✅ Wildcard permissions for all applications
           argocd proj role add-policy default admin -a get -o applications/* -p allow
           argocd proj role add-policy default admin -a sync -o applications/* -p allow
@@ -526,16 +534,17 @@ jobs:
           argocd proj role add-policy default admin -a sync -o projects/default -p allow
           argocd proj role add-policy default admin -a override -o projects/default -p allow
       
-          # ✅ Explicit access to 'demo-app'
+          # ✅ Explicit permissions for 'demo-app' — fixed format
           argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
       
-          # ✅ Cluster and namespace access
+          # ✅ Cluster and namespace resource access
           argocd proj allow-cluster-resource default "*" "*"
           argocd proj allow-namespace-resource default "*" "*"
       
           echo "✅ RBAC permissions applied successfully!"
+
 
 
 
