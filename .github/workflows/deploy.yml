@@ -547,7 +547,7 @@ jobs:
 
 
 
-      - name: Wait for ArgoCD Server to Be Ready1
+      - name: Wait for ArgoCD Server to Be Ready12
         run: |
           echo "🔄 Waiting for ArgoCD server pods to be ready..."
           for i in {1..10}; do
