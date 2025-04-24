@@ -636,6 +636,19 @@ jobs:
           done
           echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
           exit 1
+      - name: Ensure ArgoCD Server is Fully Ready
+        run: |
+          echo "🔍 Waiting for ArgoCD API to become responsive..."
+          for i in {1..10}; do
+            if curl -k https://localhost:8085/healthz; then
+              echo "✅ ArgoCD is ready!"
+              exit 0
+            fi
+            echo "⏳ Waiting for ArgoCD readiness... retrying in 5s"
+            sleep 5
+          done
+          echo "❌ ArgoCD did not respond to health check in time."
+          exit 1
       
       - name: Log into ArgoCD (Ignoring Certificate Errors1)
         run: |
