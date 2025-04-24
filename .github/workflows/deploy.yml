@@ -678,14 +678,14 @@ jobs:
             '{"data":{"policy.default":"role:admin"}}'
           echo "✅ Global authorization applied"
           
-      - name: 🔧 Update ArgoCD RBAC settings
-        run: |
-          echo "🔧 Updating ArgoCD RBAC settings..."
+      # - name: 🔧 Update ArgoCD RBAC settings
+      #   run: |
+      #     echo "🔧 Updating ArgoCD RBAC settings..."
       
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
-          '{"data": {"policy.csv": "g, my-group, role:admin\ng, dev-team, role:readonly"}}'
+      #     kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
+      #     '{"data": {"policy.csv": "g, my-group, role:admin\ng, dev-team, role:readonly"}}'
       
-          echo "✅ ArgoCD RBAC settings updated successfully!"
+      #     echo "✅ ArgoCD RBAC settings updated successfully!"
 
 
           
