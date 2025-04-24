@@ -637,19 +637,22 @@ jobs:
           echo "❌ ERROR: Could not connect to ArgoCD on localhost:8085"
           exit 1
 
-      - name: Log into ArgoCD (Ignoring Certificate Errors)
-        run: |
-          echo "🔑 Attempting to log into ArgoCD..."
-          for i in {1..5}; do
-            if argocd login $ARGOCD_SERVER --username admin --password "password" --insecure; then
-              echo "✅ Successfully logged into ArgoCD"
-              exit 0
-            fi
-            echo "⏳ Login failed. Retrying in 20s..."
-            sleep 20
-          done
-          echo "❌ ERROR: ArgoCD login failed"
-          exit 1
+           name: Log into ArgoCD (Ignoring Certificate Errors)
+            run: |
+              echo "🔑 Attempting to log into ArgoCD..."
+              for i in {1..5}; do
+                if argocd login localhost:8085 \
+                  --username admin \
+                  --password "password" \
+                  --insecure; then
+                  echo "✅ Successfully logged into ArgoCD"
+                  exit 0
+                fi
+                echo "⏳ Login failed. Retrying in 20s..."
+                sleep 20
+              done
+              echo "❌ ERROR: ArgoCD login failed"
+              exit 1
 
 
 
