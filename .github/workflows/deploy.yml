@@ -59,10 +59,10 @@ jobs:
       - name: Update kubeconfig
         run: aws eks --region us-west-2 update-kubeconfig --name my-cluster
 
-      # 7️⃣ Create ArgoCD Namespace if Not Exists
-      - name: Create ArgoCD namespace
-        run: |
-          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+      # # 7️⃣ Create ArgoCD Namespace if Not Exists
+      # - name: Create ArgoCD namespace
+      #   run: |
+      #     kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
       - name: 🚀 Install ArgoCD via Script
         run: |
