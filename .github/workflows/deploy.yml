@@ -139,7 +139,32 @@ jobs:
         run: |
           chmod +x scripts/01-ensure-iam-policy.sh
           ./scripts/01-ensure-iam-policy.sh
+      
+      - name: 🛡️ Run IAM Policy and IRSA Setup Script
+        run: |
+          chmod +x scripts/01-ensure-iam-policy.sh
+          ./scripts/01-ensure-iam-policy.sh
+      
+      # 🔽 PLACE THE NEW STEP HERE (after IRSA and before relying on NGINX)
+      
+      - name: 🚀 Install NGINX Ingress Controller (IRSA-enabled)
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+      
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx \
+            --create-namespace \
+            --set controller.serviceAccount.name=ingress-nginx-controller \
+            --set controller.serviceAccount.create=false \
+            --set controller.replicaCount=1 \
+            --set controller.publishService.enabled=true \
+            --wait
 
+      # Optional: Verify it worked
+      - name: 🧪 Verify LoadBalancer Is Available
+        run: |
+          kubectl get svc -n ingress-nginx
 
 
       - name: Install AWS Load Balancer Controller
