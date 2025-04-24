@@ -508,40 +508,39 @@ jobs:
           fi
           echo "✅ 'admin' role exists in 'default' project"
       
-          - name: 🔐 Configure RBAC Permissions for 'admin' Role in ArgoCD
-            run: |
-              echo "💥 Deleting any existing 'admin' role in project 'default'..."
-              argocd proj role delete default admin || true
-          
-              echo "🧱 Recreating fresh 'admin' role..."
-              argocd proj role create default admin
-          
-              echo "✅ Assigning clean, valid permissions..."
-          
-              # Wildcard application permissions
-              argocd proj role add-policy default admin -a get -o applications/* -p allow
-              argocd proj role add-policy default admin -a sync -o applications/* -p allow
-              argocd proj role add-policy default admin -a update -o applications/* -p allow
-              argocd proj role add-policy default admin -a override -o applications/* -p allow
-              argocd proj role add-policy default admin -a create -o applications/* -p allow
-              argocd proj role add-policy default admin -a delete -o applications/* -p allow
-          
-              # Explicit access to demo-app
-              argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
-              argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
-              argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
-          
-              # Project-level permissions
-              argocd proj role add-policy default admin -a get -o projects/default -p allow
-              argocd proj role add-policy default admin -a update -o projects/default -p allow
-              argocd proj role add-policy default admin -a sync -o projects/default -p allow
-              argocd proj role add-policy default admin -a override -o projects/default -p allow
-          
-              # Cluster and namespace-level access
-              argocd proj allow-cluster-resource default "*" "*"
-              argocd proj allow-namespace-resource default "*" "*"
-          
-              echo "✅ RBAC policies applied successfully!"
+      - name: 🔐 Configure RBAC Permissions for 'admin' Role in ArgoCD
+        run: |
+          echo "💥 Deleting any existing 'admin' role in project 'default'..."
+          argocd proj role delete default admin || true
+      
+          echo "🧱 Creating fresh 'admin' role..."
+          argocd proj role create default admin
+      
+          echo "✅ Assigning application-wide permissions..."
+          argocd proj role add-policy default admin -a get -o applications/* -p allow
+          argocd proj role add-policy default admin -a sync -o applications/* -p allow
+          argocd proj role add-policy default admin -a update -o applications/* -p allow
+          argocd proj role add-policy default admin -a override -o applications/* -p allow
+          argocd proj role add-policy default admin -a create -o applications/* -p allow
+          argocd proj role add-policy default admin -a delete -o applications/* -p allow
+      
+          echo "✅ Assigning explicit permissions for 'demo-app'..."
+          argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
+          argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
+          argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
+      
+          echo "✅ Assigning project-level permissions..."
+          argocd proj role add-policy default admin -a get -o projects/default -p allow
+          argocd proj role add-policy default admin -a update -o projects/default -p allow
+          argocd proj role add-policy default admin -a sync -o projects/default -p allow
+          argocd proj role add-policy default admin -a override -o projects/default -p allow
+      
+          echo "✅ Assigning cluster and namespace resource permissions..."
+          argocd proj allow-cluster-resource default "*" "*"
+          argocd proj allow-namespace-resource default "*" "*"
+      
+          echo "✅ RBAC policies applied successfully."
+
 
 
 
