@@ -119,6 +119,22 @@ jobs:
           eksctl version
           echo "✅ eksctl installed successfully!"
 
+      - name: 🔗 Associate IAM OIDC Provider with EKS Cluster
+        run: |
+          echo "🔍 Associating IAM OIDC provider with EKS cluster..."
+      
+          CLUSTER_NAME="my-cluster"
+          REGION="us-west-2"
+    
+          eksctl utils associate-iam-oidc-provider \
+            --region "$REGION" \
+            --cluster "$CLUSTER_NAME" \
+            --approve
+      
+          echo "✅ OIDC provider successfully associated with cluster '$CLUSTER_NAME' in region '$REGION'."
+
+
+
       - name: 🛡️ Make Script Executable and Run IAM Policy Setup
         run: |
           chmod +x scripts/01-ensure-iam-policy.sh
