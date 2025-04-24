@@ -500,19 +500,19 @@ jobs:
           echo "✅ 'default' project exists"
 
       
-      - name: 🔐 Configure RBAC and Assign 'admin' as Default Role
+      - name: 🔐 Full RBAC Reset and 'admin' Role Configuration
         run: |
-          echo "💥 Deleting any existing 'admin' role in project 'default'..."
-          argocd proj role delete default admin || true
+          echo "🔥 Removing legacy RBAC config (argocd-rbac-cm)..."
+          kubectl delete configmap argocd-rbac-cm -n argocd || true
       
-          echo "🧱 Creating fresh 'admin' role..."
+          echo "💥 Resetting 'admin' role in 'default' project..."
+          argocd proj role delete default admin || true
           argocd proj role create default admin
       
-          echo "✅ Assigning application-wide permissions..."
+          echo "✅ Assigning valid wildcard application policies..."
           argocd proj role add-policy default admin -a get -o applications/* -p allow
           argocd proj role add-policy default admin -a sync -o applications/* -p allow
           argocd proj role add-policy default admin -a update -o applications/* -p allow
-          argocd proj role add-policy default admin -a override -o applications/* -p allow
           argocd proj role add-policy default admin -a create -o applications/* -p allow
           argocd proj role add-policy default admin -a delete -o applications/* -p allow
       
@@ -524,20 +524,19 @@ jobs:
           echo "✅ Assigning project-level permissions..."
           argocd proj role add-policy default admin -a get -o projects/default -p allow
           argocd proj role add-policy default admin -a update -o projects/default -p allow
-          argocd proj role add-policy default admin -a sync -o projects/default -p allow
-          argocd proj role add-policy default admin -a override -o projects/default -p allow
       
-          echo "✅ Assigning cluster and namespace resource permissions..."
+          echo "✅ Assigning cluster and namespace resource access..."
           argocd proj allow-cluster-resource default "*" "*"
           argocd proj allow-namespace-resource default "*" "*"
       
-          echo "🔧 Setting 'admin' as default role for all users..."
+          echo "🔧 Setting 'admin' as the default role for all users..."
           kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"policy.default":"role:admin"}}'
       
-          echo "✅ RBAC and role mapping complete."
+          echo "✅ RBAC configuration and default role mapping completed successfully."
   
-  
- 
+    
+    
+   
       
 
 
