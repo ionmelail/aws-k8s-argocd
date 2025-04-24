@@ -507,50 +507,78 @@ jobs:
             argocd proj role create default admin
           fi
           echo "✅ 'admin' role exists in 'default' project"
-
-
-
-
-
-      - name: Assign Full Sync Permissions to 'admin' Role
+      
+      - name: 🔐 Configure RBAC Permissions for 'admin' Role in ArgoCD
         run: |
-          echo "🔧 Assigning full sync permissions to 'admin' role..."
+          echo "🔧 Reassigning correct RBAC permissions to 'admin' role..."
+      
+          # Assign wildcard permissions for all applications
           argocd proj role add-policy default admin -a get -o applications/* -p allow
           argocd proj role add-policy default admin -a sync -o applications/* -p allow
           argocd proj role add-policy default admin -a update -o applications/* -p allow
           argocd proj role add-policy default admin -a override -o applications/* -p allow
           argocd proj role add-policy default admin -a create -o applications/* -p allow
           argocd proj role add-policy default admin -a delete -o applications/* -p allow
-          echo "✅ Permissions updated"
-
-
-      - name: Assign Full Project-Level Permissions to 'admin' Role
-        run: |
-          echo "🔧 Assigning project-level permissions to 'admin' role..."
+      
+          # Assign project-level permissions
           argocd proj role add-policy default admin -a get -o projects/default -p allow
           argocd proj role add-policy default admin -a update -o projects/default -p allow
           argocd proj role add-policy default admin -a sync -o projects/default -p allow
           argocd proj role add-policy default admin -a override -o projects/default -p allow
-          echo "✅ Project-level permissions assigned"
-
-      - name: Assign Application-Level Access to 'admin' Role
-        run: |
-          echo "🔧 Assigning explicit permissions for 'admin' role on 'demo-app'..."
+      
+          # Assign explicit permissions for 'demo-app'
           argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
+      
+          # Assign cluster and namespace-level permissions
+          argocd proj allow-cluster-resource default "*" "*"
+          argocd proj allow-namespace-resource default "*" "*"
+      
+          echo "✅ RBAC permissions applied successfully!"
+
+
+
+
+      # - name: Assign Full Sync Permissions to 'admin' Role
+      #   run: |
+      #     echo "🔧 Assigning full sync permissions to 'admin' role..."
+      #     argocd proj role add-policy default admin -a get -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a sync -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a update -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a override -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a create -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a delete -o applications/* -p allow
+      #     echo "✅ Permissions updated"
+
+
+      # - name: Assign Full Project-Level Permissions to 'admin' Role
+      #   run: |
+      #     echo "🔧 Assigning project-level permissions to 'admin' role..."
+      #     argocd proj role add-policy default admin -a get -o projects/default -p allow
+      #     argocd proj role add-policy default admin -a update -o projects/default -p allow
+      #     argocd proj role add-policy default admin -a sync -o projects/default -p allow
+      #     argocd proj role add-policy default admin -a override -o projects/default -p allow
+      #     echo "✅ Project-level permissions assigned"
+
+      # - name: Assign Application-Level Access to 'admin' Role
+      #   run: |
+      #     echo "🔧 Assigning explicit permissions for 'admin' role on 'demo-app'..."
+      #     argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
+      #     argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
+      #     argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
   
        
 
-          echo "✅ 'admin' role permissions for 'demo-app' updated"
+      #     echo "✅ 'admin' role permissions for 'demo-app' updated"
 
 
-      - name: Assign Namespace & Cluster-Level Access
-        run: |
-          echo "🔧 Assigning namespace and cluster-level access to 'admin' role..."
-          argocd proj allow-cluster-resource default "*" "*"
-          argocd proj allow-namespace-resource default "*" "*"
-          echo "✅ Namespace and cluster-wide access granted"
+      # - name: Assign Namespace & Cluster-Level Access
+      #   run: |
+      #     echo "🔧 Assigning namespace and cluster-level access to 'admin' role..."
+      #     argocd proj allow-cluster-resource default "*" "*"
+      #     argocd proj allow-namespace-resource default "*" "*"
+      #     echo "✅ Namespace and cluster-wide access granted"
 
 
 
