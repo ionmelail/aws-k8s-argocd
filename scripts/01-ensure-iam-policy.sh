@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Configuration
+# Configurable values
 CLUSTER_NAME="my-cluster"
 SERVICE_ACCOUNT="ingress-nginx-controller"
 NAMESPACE="ingress-nginx"
@@ -11,14 +11,14 @@ echo "🔍 Checking if IAM policy $POLICY_NAME exists..."
 POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
 
 if [ -z "$POLICY_ARN" ]; then
-  echo "⚠️ Policy not found. Downloading and creating it..."
+  echo "⚠️ Policy not found. Downloading and creating..."
   curl -s -o iam-policy.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
   aws iam create-policy \
     --policy-name "$POLICY_NAME" \
     --policy-document file://iam-policy.json
   POLICY_ARN=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME'].Arn" --output text)
 else
-  echo "✅ IAM policy exists: $POLICY_ARN"
+  echo "✅ IAM policy already exists: $POLICY_ARN"
 fi
 
 echo "⏳ Waiting for IAM policy to become globally available..."
@@ -43,8 +43,13 @@ eksctl create iamserviceaccount \
   --approve \
   --override-existing-serviceaccounts
 
-echo "🔁 Restarting controller to apply IAM role..."
-kubectl rollout restart deployment "$SERVICE_ACCOUNT" -n "$NAMESPACE"
+echo "🔁 Checking if deployment '$SERVICE_ACCOUNT' exists for restart..."
+if kubectl get deployment "$SERVICE_ACCOUNT" -n "$NAMESPACE" > /dev/null 2>&1; then
+  echo "🔁 Restarting deployment to apply IAM role..."
+  kubectl rollout restart deployment "$SERVICE_ACCOUNT" -n "$NAMESPACE"
+else
+  echo "⚠️ Deployment '$SERVICE_ACCOUNT' not found. Skipping restart."
+fi
 
 echo "🔍 Verifying IAM role annotation on service account..."
 SA_ROLE=$(kubectl get sa "$SERVICE_ACCOUNT" -n "$NAMESPACE" -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}')
@@ -54,5 +59,5 @@ if [ -z "$SA_ROLE" ]; then
   exit 1
 fi
 
-echo "✅ IAM role is properly annotated: $SA_ROLE"
+echo "✅ IAM role is correctly annotated: $SA_ROLE"
 echo "✅ IAM policy and IRSA setup completed successfully for $SERVICE_ACCOUNT"
