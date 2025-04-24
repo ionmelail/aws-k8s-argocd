@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v3
 
       # - name: Retrieve AWS Account ID
-      #   id: aws_ac1count1
+      #   id: aws_ac1coun1t1
       #   run: |111
       #     ACCOUNT_ID=$(1aws sts ge1t-caller-identity1 --query "Account" --output text)
       #     echo "AWS_ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
