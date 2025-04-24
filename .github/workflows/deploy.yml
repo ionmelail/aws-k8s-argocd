@@ -538,86 +538,6 @@ jobs:
           echo "✅ RBAC permissions applied successfully!"
 
 
-
-
-      # - name: Assign Full Sync Permissions to 'admin' Role
-      #   run: |
-      #     echo "🔧 Assigning full sync permissions to 'admin' role..."
-      #     argocd proj role add-policy default admin -a get -o applications/* -p allow
-      #     argocd proj role add-policy default admin -a sync -o applications/* -p allow
-      #     argocd proj role add-policy default admin -a update -o applications/* -p allow
-      #     argocd proj role add-policy default admin -a override -o applications/* -p allow
-      #     argocd proj role add-policy default admin -a create -o applications/* -p allow
-      #     argocd proj role add-policy default admin -a delete -o applications/* -p allow
-      #     echo "✅ Permissions updated"
-
-
-      # - name: Assign Full Project-Level Permissions to 'admin' Role
-      #   run: |
-      #     echo "🔧 Assigning project-level permissions to 'admin' role..."
-      #     argocd proj role add-policy default admin -a get -o projects/default -p allow
-      #     argocd proj role add-policy default admin -a update -o projects/default -p allow
-      #     argocd proj role add-policy default admin -a sync -o projects/default -p allow
-      #     argocd proj role add-policy default admin -a override -o projects/default -p allow
-      #     echo "✅ Project-level permissions assigned"
-
-      # - name: Assign Application-Level Access to 'admin' Role
-      #   run: |
-      #     echo "🔧 Assigning explicit permissions for 'admin' role on 'demo-app'..."
-      #     argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
-      #     argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
-      #     argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
-  
-       
-
-      #     echo "✅ 'admin' role permissions for 'demo-app' updated"
-
-
-      # - name: Assign Namespace & Cluster-Level Access
-      #   run: |
-      #     echo "🔧 Assigning namespace and cluster-level access to 'admin' role..."
-      #     argocd proj allow-cluster-resource default "*" "*"
-      #     argocd proj allow-namespace-resource default "*" "*"
-      #     echo "✅ Namespace and cluster-wide access granted"
-
-
-
-      
-      - name: Ensure Global ArgoCD Authorization for 'admin'
-        run: |
-          echo "🔧 Ensuring 'admin' is globally authorized in ArgoCD..."
-          kubectl patch configmap argocd-cm -n argocd --type merge -p \
-            '{"data":{"policy.default":"role:admin"}}'
-          echo "✅ Global authorization applied"
-          
-      - name: 🔧 Update ArgoCD RBAC settings
-        run: |
-          echo "🔧 Updating ArgoCD RBAC settings..."
-      
-          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
-          '{"data": {"policy.csv": "g, my-group, role:admin\ng, dev-team, role:readonly"}}'
-      
-          echo "✅ ArgoCD RBAC settings updated successfully!"
-
-
-          
-      - name: Ensure ArgoCD Controller Has Full Cluster Access
-        run: |
-          echo "🔧 Granting cluster-admin access to ArgoCD controller..."
-          kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
-          echo "✅ ArgoCD controller has cluster-admin access"
-
-          
-
-
-      
-      - name: Restart ArgoCD Server to Apply Authorization Changes
-        run: |
-          echo "🔄 Restarting ArgoCD to apply changes..."
-          kubectl rollout restart deployment argocd-server -n argocd
-          sleep 30
-          echo "✅ Restart complete"
-
       - name: Wait for ArgoCD Server to Be Ready
         run: |
           echo "🔄 Waiting for ArgoCD server pods to be ready..."
@@ -694,6 +614,86 @@ jobs:
           done
           echo "❌ ERROR: ArgoCD login failed"
           exit 1
+
+
+
+      # - name: Assign Full Sync Permissions to 'admin' Role
+      #   run: |
+      #     echo "🔧 Assigning full sync permissions to 'admin' role..."
+      #     argocd proj role add-policy default admin -a get -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a sync -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a update -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a override -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a create -o applications/* -p allow
+      #     argocd proj role add-policy default admin -a delete -o applications/* -p allow
+      #     echo "✅ Permissions updated"
+
+
+      # - name: Assign Full Project-Level Permissions to 'admin' Role
+      #   run: |
+      #     echo "🔧 Assigning project-level permissions to 'admin' role..."
+      #     argocd proj role add-policy default admin -a get -o projects/default -p allow
+      #     argocd proj role add-policy default admin -a update -o projects/default -p allow
+      #     argocd proj role add-policy default admin -a sync -o projects/default -p allow
+      #     argocd proj role add-policy default admin -a override -o projects/default -p allow
+      #     echo "✅ Project-level permissions assigned"
+
+      # - name: Assign Application-Level Access to 'admin' Role
+      #   run: |
+      #     echo "🔧 Assigning explicit permissions for 'admin' role on 'demo-app'..."
+      #     argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
+      #     argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
+      #     argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
+  
+       
+
+      #     echo "✅ 'admin' role permissions for 'demo-app' updated"
+
+
+      # - name: Assign Namespace & Cluster-Level Access
+      #   run: |
+      #     echo "🔧 Assigning namespace and cluster-level access to 'admin' role..."
+      #     argocd proj allow-cluster-resource default "*" "*"
+      #     argocd proj allow-namespace-resource default "*" "*"
+      #     echo "✅ Namespace and cluster-wide access granted"
+
+
+
+      
+      - name: Ensure Global ArgoCD Authorization for 'admin'
+        run: |
+          echo "🔧 Ensuring 'admin' is globally authorized in ArgoCD..."
+          kubectl patch configmap argocd-cm -n argocd --type merge -p \
+            '{"data":{"policy.default":"role:admin"}}'
+          echo "✅ Global authorization applied"
+          
+      - name: 🔧 Update ArgoCD RBAC settings
+        run: |
+          echo "🔧 Updating ArgoCD RBAC settings..."
+      
+          kubectl patch configmap argocd-rbac-cm -n argocd --type merge -p \
+          '{"data": {"policy.csv": "g, my-group, role:admin\ng, dev-team, role:readonly"}}'
+      
+          echo "✅ ArgoCD RBAC settings updated successfully!"
+
+
+          
+      - name: Ensure ArgoCD Controller Has Full Cluster Access
+        run: |
+          echo "🔧 Granting cluster-admin access to ArgoCD controller..."
+          kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
+          echo "✅ ArgoCD controller has cluster-admin access"
+
+          
+
+
+      
+      # - name: Restart ArgoCD Server to Apply Authorization Changes
+      #   run: |
+      #     echo "🔄 Restarting ArgoCD to apply changes..."
+      #     kubectl rollout restart deployment argocd-server -n argocd
+      #     sleep 30
+      #     echo "✅ Restart complete"
 
 
 
@@ -804,7 +804,7 @@ jobs:
 
           echo "🚀 Syncing demo-app with ArgoCD via port-forward..."
           argocd app sync demo-app --server=localhost:8085 || (echo "❌ Sync failed via port-forwarding." && exit 1)
-          echo "✅ Sync initiated successfully (fallback mode)"
+          echo "✅ Sync initiated successfully (fallback mode)Configure RBAC Permissions for 'admin' Role in ArgoCD"
 
           echo "🛑 Cleaning up port-forwarding..."
           kill $(cat port_forward_pid)
