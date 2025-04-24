@@ -512,7 +512,7 @@ jobs:
         run: |
           echo "🔧 Reassigning correct RBAC permissions to 'admin' role..."
       
-          # Assign wildcard permissions for all applications
+          # ✅ Wildcard permissions for all applications
           argocd proj role add-policy default admin -a get -o applications/* -p allow
           argocd proj role add-policy default admin -a sync -o applications/* -p allow
           argocd proj role add-policy default admin -a update -o applications/* -p allow
@@ -520,25 +520,26 @@ jobs:
           argocd proj role add-policy default admin -a create -o applications/* -p allow
           argocd proj role add-policy default admin -a delete -o applications/* -p allow
       
-          # Assign project-level permissions
+          # ✅ Project-level permissions
           argocd proj role add-policy default admin -a get -o projects/default -p allow
           argocd proj role add-policy default admin -a update -o projects/default -p allow
           argocd proj role add-policy default admin -a sync -o projects/default -p allow
           argocd proj role add-policy default admin -a override -o projects/default -p allow
       
-          # Assign explicit permissions for 'demo-app'
+          # ✅ Explicit access to 'demo-app'
           argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
           argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
       
-          # Assign cluster and namespace-level permissions
+          # ✅ Cluster and namespace access
           argocd proj allow-cluster-resource default "*" "*"
           argocd proj allow-namespace-resource default "*" "*"
       
           echo "✅ RBAC permissions applied successfully!"
 
 
-      - name: Wait for ArgoCD Server to Be Ready
+
+      - name: Wait for ArgoCD Server to Be Ready1
         run: |
           echo "🔄 Waiting for ArgoCD server pods to be ready..."
           for i in {1..10}; do
