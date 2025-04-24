@@ -1,42 +1,67 @@
 #!/bin/bash
 set -euo pipefail
 
-NAMESPACE="argocd"
-ADMIN_PASSWORD_BCRYPT='$2a$10$wEJ.NXBfjRj9JQ0QeqA1OuD4/2H6pRxH3p80fD/QFOhH8sD/jq12y'
+# Common config
+CLUSTER_NAME="my-cluster"
 
-echo "🔑 Ensuring ArgoCD admin secret exists..."
-if ! kubectl get secret argocd-secret -n $NAMESPACE > /dev/null 2>&1; then
-  kubectl create secret generic argocd-secret \
-    -n $NAMESPACE \
-    --from-literal=admin.password="$ADMIN_PASSWORD_BCRYPT"
-  echo "✅ ArgoCD admin secret created."
-else
-  echo "✅ ArgoCD admin secret already exists."
+#####################################
+# 1️⃣ NGINX Ingress Controller Setup
+#####################################
+SERVICE_ACCOUNT_NGINX="ingress-nginx-controller"
+NAMESPACE_NGINX="ingress-nginx"
+POLICY_NAME_NGINX="AmazonEKSLoadBalancerController"
+
+echo "🔍 Checking IAM policy for NGINX..."
+POLICY_ARN_NGINX=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME_NGINX'].Arn" --output text)
+
+if [ -z "$POLICY_ARN_NGINX" ]; then
+  echo "⚠️ NGINX policy not found. Creating it..."
+  curl -s -o iam-policy-nginx.json https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+  aws iam create-policy \
+    --policy-name "$POLICY_NAME_NGINX" \
+    --policy-document file://iam-policy-nginx.json
+  POLICY_ARN_NGINX=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME_NGINX'].Arn" --output text)
 fi
 
-echo "📦 Installing ArgoCD into namespace '$NAMESPACE'..."
-kubectl apply -n $NAMESPACE -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+echo "🔗 Setting up IRSA for NGINX Ingress..."
+eksctl create iamserviceaccount \
+  --cluster "$CLUSTER_NAME" \
+  --namespace "$NAMESPACE_NGINX" \
+  --name "$SERVICE_ACCOUNT_NGINX" \
+  --attach-policy-arn "$POLICY_ARN_NGINX" \
+  --approve \
+  --override-existing-serviceaccounts
 
-echo "⏳ Waiting for ArgoCD pods to be ready..."
-for i in {1..30}; do
-  READY_PODS=$(kubectl get pods -n $NAMESPACE --no-headers | awk '{print $2}' | grep -c "1/1" || true)
-  TOTAL_PODS=$(kubectl get pods -n $NAMESPACE --no-headers | wc -l)
+#####################################
+# 2️⃣ GuardDuty Runtime Monitoring Setup
+#####################################
+SERVICE_ACCOUNT_GD="guardduty-agent"
+NAMESPACE_GD="amazon-guardduty"
+POLICY_NAME_GD="AmazonGuardDutyEKSRuntimeMonitoringPolicy"
 
-  if [[ "$READY_PODS" -eq "$TOTAL_PODS" && "$TOTAL_PODS" -gt 0 ]]; then
-    echo "✅ All ArgoCD pods are ready! ($READY_PODS/$TOTAL_PODS)"
-    break
-  fi
+echo "🔍 Checking IAM policy for GuardDuty..."
+POLICY_ARN_GD=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME_GD'].Arn" --output text)
 
-  echo "⏳ Waiting... $READY_PODS/$TOTAL_PODS pods are ready."
-  sleep 10
-done
-
-# Final check after loop
-if [[ "$READY_PODS" -ne "$TOTAL_PODS" || "$TOTAL_PODS" -eq 0 ]]; then
-  echo "❌ Error: ArgoCD pods failed to reach 1/1 READY state."
-  kubectl get pods -n $NAMESPACE
-  exit 1
+if [ -z "$POLICY_ARN_GD" ]; then
+  echo "⚠️ GuardDuty policy not found. Creating it..."
+  curl -s -o iam-policy-guardduty.json https://raw.githubusercontent.com/aws/amazon-guardduty-eks-runtime-monitoring/main/deployment/IAMPolicy.json
+  aws iam create-policy \
+    --policy-name "$POLICY_NAME_GD" \
+    --policy-document file://iam-policy-guardduty.json
+  POLICY_ARN_GD=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME_GD'].Arn" --output text)
 fi
 
-echo "🔓 Fetching ArgoCD initial admin password (if default secret still exists)..."
-kubectl -n $NAMESPACE get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" 2>/dev/null | base64 -d || echo "⚠️ Default admin secret not found (may have been replaced)."
+echo "🔗 Setting up IRSA for GuardDuty..."
+eksctl create iamserviceaccount \
+  --cluster "$CLUSTER_NAME" \
+  --namespace "$NAMESPACE_GD" \
+  --name "$SERVICE_ACCOUNT_GD" \
+  --attach-policy-arn "$POLICY_ARN_GD" \
+  --approve \
+  --override-existing-serviceaccounts
+
+echo "✅ IRSA setup complete for:"
+echo "  - NGINX:         $SERVICE_ACCOUNT_NGINX (namespace: $NAMESPACE_NGINX)"
+echo "  - GuardDuty:     $SERVICE_ACCOUNT_GD (namespace: $NAMESPACE_GD)"
+
+echo "👉 Please assign the GuardDuty IAM role manually in the EKS Console > Add-ons > Edit"
