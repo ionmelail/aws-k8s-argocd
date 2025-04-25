@@ -19,13 +19,6 @@ jobs:
       # 1️⃣ Checkout Repository Code1211
       - name: Checkout Code1
         uses: actions/checkout@v3
-
-      # - name: Retrieve AWS Account ID1
-      #   id: aws_ac11coun1t1
-      #   run: |111
-      #     ACCOUNT_ID1=$(1aws sts ge1t-cal  ler-identity1 --query "Account" --output text)
-      #     echo "AWS_ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_ENV
-
  
       #  Step 2: Configure AWS Credentials using GitHub Secrets
       - name: Configure AWS Credentials
