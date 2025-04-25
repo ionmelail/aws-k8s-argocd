@@ -43,8 +43,15 @@ echo "🔍 Checking IAM policy for GuardDuty..."
 POLICY_ARN_GD=$(aws iam list-policies --scope Local --query "Policies[?PolicyName=='$POLICY_NAME_GD'].Arn" --output text)
 
 if [ -z "$POLICY_ARN_GD" ]; then
-  echo "⚠️ GuardDuty policy not found. Creating it..."
-  curl -s -o iam-policy-guardduty.json https://raw.githubusercontent.com/aws/amazon-guardduty-eks-runtime-monitoring/main/deployment/IAMPolicy.json
+  echo "⚠️ GuardDuty policy not found. Downloading and creating..."
+  curl -sSL -o iam-policy-guardduty.json https://raw.githubusercontent.com/aws/amazon-guardduty-eks-runtime-monitoring/main/deployment/IAMPolicy.json
+
+  echo "🧪 Validating policy JSON..."
+  if ! jq . iam-policy-guardduty.json > /dev/null 2>&1; then
+    echo "❌ Malformed JSON in policy. Aborting!"
+    exit 1
+  fi
+
   aws iam create-policy \
     --policy-name "$POLICY_NAME_GD" \
     --policy-document file://iam-policy-guardduty.json
@@ -61,7 +68,7 @@ eksctl create iamserviceaccount \
   --override-existing-serviceaccounts
 
 echo "✅ IRSA setup complete for:"
-echo "  - NGINX:         $SERVICE_ACCOUNT_NGINX (namespace: $NAMESPACE_NGINX)"
-echo "  - GuardDuty:     $SERVICE_ACCOUNT_GD (namespace: $NAMESPACE_GD)"
+echo "  - NGINX:     $SERVICE_ACCOUNT_NGINX (namespace: $NAMESPACE_NGINX)"
+echo "  - GuardDuty: $SERVICE_ACCOUNT_GD (namespace: $NAMESPACE_GD)"
 
-echo "👉 Please assign the GuardDuty IAM role manually in the EKS Console > Add-ons > Edit"
+echo "👉 Please assign the GuardDuty IAM role manually in the EKS Console → Add-ons → Edit → Select IAM Role"
