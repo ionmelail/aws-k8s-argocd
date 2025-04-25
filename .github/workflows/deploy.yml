@@ -136,42 +136,42 @@ jobs:
           chmod +x scripts/01-ensure-iam-policy.sh
           ./scripts/01-ensure-iam-policy.sh
 
-      - name: 🚀 Install NGINX Ingress Controller (IRSA + LoadBalancer)
+      # - name: 🚀 Install NGINX Ingress Controller (IRSA + LoadBalancer)
     
-        run: |
-          echo "🚀 Installing NGINX Ingress Controller on EKS..."
+      #   run: |
+      #     echo "🚀 Installing NGINX Ingress Controller on EKS..."
       
-          # Add the Helm repo
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-          helm repo update
+      #     # Add the Helm repo
+      #     helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      #     helm repo update
       
-          # Deploy with IRSA-bound service account and LoadBalancer type
-          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
-            --namespace ingress-nginx \
-            --create-namespace \
-            --set controller.service.type=LoadBalancer \
-            --set controller.serviceAccount.name=ingress-nginx-controller \
-            --set controller.serviceAccount.create=false \
-            --set controller.replicaCount=2 \
-            --wait
+      #     # Deploy with IRSA-bound service account and LoadBalancer type
+      #     helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+      #       --namespace ingress-nginx \
+      #       --create-namespace \
+      #       --set controller.service.type=LoadBalancer \
+      #       --set controller.serviceAccount.name=ingress-nginx-controller \
+      #       --set controller.serviceAccount.create=false \
+      #       --set controller.replicaCount=2 \
+      #       --wait
       
-          echo "⏳ Waiting for LoadBalancer external hostname..."
+      #     echo "⏳ Waiting for LoadBalancer external hostname..."
       
-          for i in {1..20}; do
-            LB_HOSTNAME=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+      #     for i in {1..20}; do
+      #       LB_HOSTNAME=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
       
-            if [[ -n "$LB_HOSTNAME" ]]; then
-              echo "✅ NGINX LoadBalancer is available:"
-              echo "🔗 http://$LB_HOSTNAME"
-              exit 0
-            fi
+      #       if [[ -n "$LB_HOSTNAME" ]]; then
+      #         echo "✅ NGINX LoadBalancer is available:"
+      #         echo "🔗 http://$LB_HOSTNAME"
+      #         exit 0
+      #       fi
       
-            echo "⏳ Still waiting... ($i/20)"
-            sleep 10
-          done
+      #       echo "⏳ Still waiting... ($i/20)"
+      #       sleep 10
+      #     done
       
-          echo "❌ LoadBalancer was not assigned in time. Check AWS ELB creation or IRSA."
-          exit 1
+      #     echo "❌ LoadBalancer was not assigned in time. Check AWS ELB creation or IRSA."
+      #     exit 1
       
 
 
