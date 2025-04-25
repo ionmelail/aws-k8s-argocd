@@ -28,10 +28,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-      - name: 🚀 Install NGINX + Patch ArgoCD + Apply Ingress
-        run: |
-          chmod +x scripts/03-nginx-and-argocd-ingress.sh
-          ./scripts/03-nginx-and-argocd-ingress.sh   
+
 
       #  Step 3: Set up Terraform for Infrastructure Provisioning
       - name: Set up Terraform
@@ -176,7 +173,10 @@ jobs:
       #     echo "❌ LoadBalancer was not assigned in time. Check AWS ELB creation or IRSA."
       #     exit 1
       
-
+      - name: 🚀 Install NGINX + Patch ArgoCD + Apply Ingress
+        run: |
+          chmod +x scripts/03-nginx-and-argocd-ingress.sh
+          ./scripts/03-install-nginx-ingress.sh   
 
       # Optional: Verify it worked
       - name: 🧪 Verify LoadBalancer Is Available
