@@ -679,7 +679,11 @@ jobs:
           kubectl create clusterrolebinding argocd-admin-binding --clusterrole=cluster-admin --serviceaccount=argocd:argocd-application-controller || true
           echo "✅ ArgoCD controller has cluster-admin access"
 
-          
+      - name: 🚀 Make Executable and Apply ArgoCD Application
+        run: |
+          chmod +x scripts/07-apply-argocd-app.sh
+          ./scripts/07-apply-argocd-app.sh ${{ secrets.AWS_ACCOUNT_ID }}
+
 
 
       
@@ -721,7 +725,6 @@ jobs:
           sed -i "s|AWS_ACCOUNT_ID|${{ secrets.AWS_ACCOUNT_ID }}|g" argocd/application.yaml
           kubectl apply -f argocd/application.yaml
 
-          kubectl apply -f argocd/application.yaml
 
       - name: 🔍 Checking if 'demo-app' exists222..
         run: argocd app list    
