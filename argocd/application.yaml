@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: demo-app
-          image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/demo-app:latest
+          image: ${AWS_ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/demo-app
           ports:
             - containerPort: 8080
           env:
