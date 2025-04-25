@@ -142,7 +142,7 @@ jobs:
           chmod +x scripts/01-ensure-iam-policy.sh
           ./scripts/01-ensure-iam-policy.sh
 
-      # - name: 🚀 Install NGINX Ingress Controller (IRSA + LoadBalancer)
+      # - name: 🚀 Install NGINX Ingress Controller (IRSA + LoadBalancer)1
     
       #   run: |
       #     echo "🚀 Installing NGINX Ingress Controller on EKS..."
