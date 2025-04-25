@@ -28,7 +28,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-2
 
-   
+      - name: 🚀 Install NGINX + Patch ArgoCD + Apply Ingress
+        run: |
+          chmod +x scripts/03-nginx-and-argocd-ingress.sh
+          ./scripts/03-nginx-and-argocd-ingress.sh   
 
       #  Step 3: Set up Terraform for Infrastructure Provisioning
       - name: Set up Terraform
@@ -329,25 +332,25 @@ jobs:
 
 
 
-    # # Step 3: Make NGINX Ingress Script Executable
-    #   - name: Make NGINX Ingress Script Executable
-    #     run: chmod +x scripts/03-install-nginx-ingress.sh
+    # # # Step 3: Make NGINX Ingress Script Executable
+    # #   - name: Make NGINX Ingress Script Executable
+    # #     run: chmod +x scripts/03-install-nginx-ingress.sh
 
-      # Step 4: Make ArgoCD ClusterIP Patch Script Executable
-      - name: Make ArgoCD ClusterIP Patch Script Executable
-        run: chmod +x scripts/04-patch-argocd-service.sh
+    #   # Step 4: Make ArgoCD ClusterIP Patch Script Executable
+    #   - name: Make ArgoCD ClusterIP Patch Script Executable
+    #     run: chmod +x scripts/04-patch-argocd-service.sh
 
-      # Step 5: Make ArgoCD Ingress Script Executable
-      - name: Make ArgoCD Ingress Script Executable
-        run: chmod +x scripts/05-apply-argocd-ingress.sh
+    #   # Step 5: Make ArgoCD Ingress Script Executable
+    #   - name: Make ArgoCD Ingress Script Executable
+    #     run: chmod +x scripts/05-apply-argocd-ingress.sh
 
-      # # Step 6: Install NGINX Ingress Controller
-      # - name: Install NGINX Ingress Controller
-      #   run: ./scripts/03-install-nginx-ingress.sh
+    #   # # Step 6: Install NGINX Ingress Controller
+    #   # - name: Install NGINX Ingress Controller
+    #   #   run: ./scripts/03-install-nginx-ingress.sh
 
-      # Step 7: Patch ArgoCD Service to ClusterIP
-      - name: Patch ArgoCD Service to ClusterIP
-        run: ./scripts/04-patch-argocd-service.sh
+    #   # Step 7: Patch ArgoCD Service to ClusterIP
+    #   - name: Patch ArgoCD Service to ClusterIP
+    #     run: ./scripts/04-patch-argocd-service.sh
 
       - name: Get External IP or Hostname of NGINX Ingress Controller
         run: |
