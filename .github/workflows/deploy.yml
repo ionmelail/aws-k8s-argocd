@@ -17,7 +17,7 @@ jobs:
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
     steps:
     
-      # 1️⃣ Checkout Repository Code121111
+      # 1️⃣ Checkout Repository Code1211111
       - name: Checkout Code1
         uses: actions/checkout@v3
  
