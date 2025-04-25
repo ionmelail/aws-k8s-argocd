@@ -142,22 +142,45 @@ jobs:
         run: |
           chmod +x scripts/01-ensure-iam-policy.sh
           ./scripts/01-ensure-iam-policy.sh
-      
-      # 🔽 PLACE THE NEW STEP HERE (after IRSA and before relying on NGINX)
-      
-      - name: 🚀 Install NGINX Ingress Controller (IRSA-enabled)
+
+      - name: 🚀 Install NGINX Ingress Controller (IRSA + LoadBalancer)
+    
         run: |
+          echo "🚀 Installing NGINX Ingress Controller on EKS..."
+      
+          # Add the Helm repo
           helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
           helm repo update
       
+          # Deploy with IRSA-bound service account and LoadBalancer type
           helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
             --namespace ingress-nginx \
             --create-namespace \
+            --set controller.service.type=LoadBalancer \
             --set controller.serviceAccount.name=ingress-nginx-controller \
             --set controller.serviceAccount.create=false \
-            --set controller.replicaCount=1 \
-            --set controller.publishService.enabled=true \
+            --set controller.replicaCount=2 \
             --wait
+      
+          echo "⏳ Waiting for LoadBalancer external hostname..."
+      
+          for i in {1..20}; do
+            LB_HOSTNAME=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+      
+            if [[ -n "$LB_HOSTNAME" ]]; then
+              echo "✅ NGINX LoadBalancer is available:"
+              echo "🔗 http://$LB_HOSTNAME"
+              exit 0
+            fi
+      
+            echo "⏳ Still waiting... ($i/20)"
+            sleep 10
+          done
+      
+          echo "❌ LoadBalancer was not assigned in time. Check AWS ELB creation or IRSA."
+          exit 1
+      
+
 
       # Optional: Verify it worked
       - name: 🧪 Verify LoadBalancer Is Available
@@ -313,9 +336,9 @@ jobs:
 
 
 
-    # Step 3: Make NGINX Ingress Script Executable
-      - name: Make NGINX Ingress Script Executable
-        run: chmod +x scripts/03-install-nginx-ingress.sh
+    # # Step 3: Make NGINX Ingress Script Executable
+    #   - name: Make NGINX Ingress Script Executable
+    #     run: chmod +x scripts/03-install-nginx-ingress.sh
 
       # Step 4: Make ArgoCD ClusterIP Patch Script Executable
       - name: Make ArgoCD ClusterIP Patch Script Executable
@@ -325,9 +348,9 @@ jobs:
       - name: Make ArgoCD Ingress Script Executable
         run: chmod +x scripts/05-apply-argocd-ingress.sh
 
-      # Step 6: Install NGINX Ingress Controller
-      - name: Install NGINX Ingress Controller
-        run: ./scripts/03-install-nginx-ingress.sh
+      # # Step 6: Install NGINX Ingress Controller
+      # - name: Install NGINX Ingress Controller
+      #   run: ./scripts/03-install-nginx-ingress.sh
 
       # Step 7: Patch ArgoCD Service to ClusterIP
       - name: Patch ArgoCD Service to ClusterIP
