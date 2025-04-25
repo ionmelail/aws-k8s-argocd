@@ -4,7 +4,10 @@ metadata:
   name: my-app-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
+  ingressClassName: nginx
   rules:
     - host: my-app.example.com
       http:
@@ -15,4 +18,4 @@ spec:
               service:
                 name: my-app-service
                 port:
-                  number: 80
+                  number: 443
