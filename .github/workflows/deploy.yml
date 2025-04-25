@@ -340,9 +340,9 @@ jobs:
     #   - name: Make ArgoCD ClusterIP Patch Script Executable
     #     run: chmod +x scripts/04-patch-argocd-service.sh
 
-    #   # Step 5: Make ArgoCD Ingress Script Executable
-    #   - name: Make ArgoCD Ingress Script Executable
-    #     run: chmod +x scripts/05-apply-argocd-ingress.sh
+      # Step 5: Make ArgoCD Ingress Script Executable
+      - name: Make ArgoCD Ingress Script Executable
+        run: chmod +x scripts/05-apply-argocd-ingress.sh
 
     #   # # Step 6: Install NGINX Ingress Controller
     #   # - name: Install NGINX Ingress Controller
