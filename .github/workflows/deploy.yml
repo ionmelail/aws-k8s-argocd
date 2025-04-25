@@ -20,7 +20,7 @@ jobs:
       - name: Checkout Code1
         uses: actions/checkout@v3
 
-      # - name: Retrieve AWS Account ID
+      # - name: Retrieve AWS Account ID1
       #   id: aws_ac1coun1t1
       #   run: |111
       #     ACCOUNT_ID1=$(1aws sts ge1t-cal  ler-identity1 --query "Account" --output text)
