@@ -471,19 +471,16 @@ jobs:
           fi
           echo "✅ 'default' project exists"
 
-      - name: 🔐 Force RBAC Reset (Hard Clean of 'admin' Role for demo-app)
+      - name: 🔐 Force RBAC Reset (Hard Clean of 'admin' Role for all apps)
         run: |
-          echo "🔥 Deleting legacy RBAC config if still present..."
-          kubectl delete configmap argocd-rbac-cm -n argocd || true
-      
-          echo "💥 Force deleting and recreating 'admin' role in project 'default'..."
+          echo "💥 Recreating 'admin' role in project 'default'..."
           argocd proj role delete default admin || true
           argocd proj role create default admin
       
-          echo "✅ Applying application-specific policies for 'demo-app'..."
-          argocd proj role add-policy default admin -a get -o applications/demo-app -p allow
-          argocd proj role add-policy default admin -a sync -o applications/demo-app -p allow
-          argocd proj role add-policy default admin -a update -o applications/demo-app -p allow
+          echo "✅ Granting application-wide permissions for admin..."
+          argocd proj role add-policy default admin -a get -o applications/* -p allow
+          argocd proj role add-policy default admin -a sync -o applications/* -p allow
+          argocd proj role add-policy default admin -a update -o applications/* -p allow
       
           echo "✅ Adding project-level access..."
           argocd proj role add-policy default admin -a get -o projects/default -p allow
@@ -496,19 +493,18 @@ jobs:
           echo "🔧 Setting 'admin' as the default role for all users..."
           kubectl patch configmap argocd-cm -n argocd --type merge -p '{"data":{"policy.default":"role:admin"}}'
       
-          echo "✅ RBAC configuration and role mapping for 'demo-app' completed successfully."
+          echo "✅ RBAC for 'admin' role applied to project 'default'"
       
           echo "🌐 Attempting to print ArgoCD external URL..."
-          ARGOCD_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          ARGOCD_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || true)
           if [ -z "$ARGOCD_URL" ]; then
-            echo "⚠️ ArgoCD LoadBalancer not ready yet or not exposed. You may need to use port-forward later."
+            echo "⚠️ ArgoCD LoadBalancer not ready or not exposed. Use port-forward if needed."
           else
-            echo "🔗 ArgoCD Web UI is available at: https://$ARGOCD_URL"
+            echo "🔗 ArgoCD Web UI available at: https://$ARGOCD_URL"
           fi
-      
-        
+         
+                
           
-    
    
       
 
