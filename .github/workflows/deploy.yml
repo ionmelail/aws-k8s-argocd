@@ -239,13 +239,6 @@ jobs:
             echo "Namespace demo-app already exists."
           fi
 
-   
-      # # 1️⃣5️⃣ Check all namespces 
-      # - name: Check all namespces
-      #   run: |
-      #    kubectl get applications --all-namespaces
-      #    kubectl get secret --all-namespaces | grep argocd-initial-admin-secret
-
 
       # 1️⃣6️⃣ Restart ArgoCD Pods if Needed
       - name: Restart ArgoCD Pods if Needed
@@ -754,6 +747,12 @@ jobs:
           fi
           echo "✅ 'demo-app' exists and is accessible."
 
+   
+      # 1️⃣5️⃣ Check all namespces 
+      - name: Check all namespces
+        run: |
+         kubectl get svc -n demo-app
+         kubectl get applications --all-namespaces
 
       - name: Debug - Check If 'admin' Can Access 'demo-app'
         run: |
