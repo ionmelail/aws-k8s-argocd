@@ -136,10 +136,7 @@ jobs:
 
 
 
-      - name: 🛡️ Make Script Executable and Run IAM Policy Setup
-        run: |
-          chmod +x scripts/01-ensure-iam-policy.sh
-          ./scripts/01-ensure-iam-policy.sh
+
       
       - name: 🛡️ Run IAM Policy and IRSA Setup Script
         run: |
