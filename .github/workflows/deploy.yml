@@ -336,33 +336,33 @@ jobs:
       - name: Patch ArgoCD Service to ClusterIP
         run: ./scripts/04-patch-argocd-service.sh
 
-      # - name: Get External IP or Hostname of NGINX Ingress Controller
-      #   run: |
-      #     echo "Getting External IP or Hostname for NGINX ingress controller..."
-      #     for i in {1..20}; do
-      #       EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
-      #       EXTERNAL_HOSTNAME=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].hostname}" 2>/dev/null || echo "")
-      #       if [[ -n "$EXTERNAL_IP" ]]; then
-      #         echo "✅ Ingress Controller External IP: $EXTERNAL_IP"
-      #         echo "EXTERNAL_IP=$EXTERNAL_IP" >> $GITHUB_ENV
-      #         exit 0
-      #       elif [[ -n "$EXTERNAL_HOSTNAME" ]]; then
-      #         echo "✅ Ingress Controller External Hostname: $EXTERNAL_HOSTNAME"
-      #         echo "EXTERNAL_HOSTNAME=$EXTERNAL_HOSTNAME" >> $GITHUB_ENV
-      #         exit 0
-      #       fi
-      #       echo "⏳ Waiting for external IP/hostname... retry $i"
-      #       sleep 15
-      #     done
-      #     echo "❌ Failed to get external IP/hostname for ingress controller"
-      #     exit 1
+      - name: Get External IP or Hostname of NGINX Ingress Controller
+        run: |
+          echo "Getting External IP or Hostname for NGINX ingress controller..."
+          for i in {1..20}; do
+            EXTERNAL_IP=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || echo "")
+            EXTERNAL_HOSTNAME=$(kubectl get svc ingress-nginx-controller -n ingress-nginx -o jsonpath="{.status.loadBalancer.ingress[0].hostname}" 2>/dev/null || echo "")
+            if [[ -n "$EXTERNAL_IP" ]]; then
+              echo "✅ Ingress Controller External IP: $EXTERNAL_IP"
+              echo "EXTERNAL_IP=$EXTERNAL_IP" >> $GITHUB_ENV
+              exit 0
+            elif [[ -n "$EXTERNAL_HOSTNAME" ]]; then
+              echo "✅ Ingress Controller External Hostname: $EXTERNAL_HOSTNAME"
+              echo "EXTERNAL_HOSTNAME=$EXTERNAL_HOSTNAME" >> $GITHUB_ENV
+              exit 0
+            fi
+            echo "⏳ Waiting for external IP/hostname... retry $i"
+            sleep 15
+          done
+          echo "❌ Failed to get external IP/hostname for ingress controller"
+          exit 1
 
 
-      # # Step 9: Update Ingress YAML with External IP
-      # - name: Update Ingress YAML with External IP
-      #   run: |
-      #     echo "Updating argocd-server-ingress.yaml with External IP: $EXTERNAL_IP"
-      #     sed -i "s|<EXTERNAL_IP>|$EXTERNAL_IP|g" argocd/argocd-server-ingress.yaml
+      # Step 9: Update Ingress YAML with External IP
+      - name: Update Ingress YAML with External IP
+        run: |
+          echo "Updating argocd-server-ingress.yaml with External IP: $EXTERNAL_IP"
+          sed -i "s|<EXTERNAL_IP>|$EXTERNAL_IP|g" argocd/argocd-server-ingress.yaml
 
          # Step: Disable NGINX Admission Webhook (for testing only)
       - name: Disable NGINX Admission Webhook (testing only)
